@@ -15,11 +15,11 @@ website that explores it all in the browser.
 
 ## Demo website
 
-`site/index.html` is a self-contained single page (plus the generated `site/data.js` data bundle).
+`docs/index.html` is a self-contained single page (plus the generated `docs/data.js` data bundle).
 No build step, no CDN, no frameworks — open it in any modern browser:
 
 ```bash
-python3 -m http.server 8000 --directory site
+python3 -m http.server 8000 --directory docs
 # then visit http://localhost:8000
 ```
 
@@ -39,7 +39,7 @@ Sections:
 ## Regenerating the data bundle
 
 ```bash
-python3 build.py   # reads the CSVs, writes site/data.js
+python3 build.py   # reads the CSVs, writes docs/data.js
 ```
 
 ## Notable observations

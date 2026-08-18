@@ -15,7 +15,7 @@ import pandas as pd
 from collections import defaultdict
 
 ROOT = "."
-SITE = "site"
+SITE = "docs"
 
 # ---------------------------------------------------------------------------
 # 1. Historical matches 1930-2014

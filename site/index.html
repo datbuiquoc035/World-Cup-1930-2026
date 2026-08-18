@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>World Cup 1930–2026 · Data Explorer</title>
+<style>
+  :root {
+    --bg: #0b1220; --panel: #111a2e; --panel2: #16213a; --line: #243357;
+    --txt: #e8edf7; --muted: #93a3c4; --green: #2ecc71; --amber: #f1c40f;
+    --red: #e74c3c; --blue: #4da3ff; --gold: #d4af37;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+         background: radial-gradient(1200px 600px at 70% -10%, #1a2b52 0%, var(--bg) 55%) fixed;
+         color: var(--txt); line-height: 1.5; }
+  header.hero { padding: 56px 24px 40px; text-align: center;
+                border-bottom: 1px solid var(--line);
+                background: linear-gradient(180deg, rgba(77,163,255,.08), transparent); }
+  header.hero h1 { font-size: clamp(26px, 5vw, 44px); margin: 0 0 6px; letter-spacing: .5px; }
+  header.hero h1 span { color: var(--gold); }
+  header.hero p.sub { color: var(--muted); margin: 0 auto; max-width: 720px; }
+  nav { position: sticky; top: 0; z-index: 50; background: rgba(11,18,32,.92);
+        backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+  nav .inner { max-width: 1200px; margin: 0 auto; display: flex; gap: 4px; overflow-x: auto; padding: 0 12px; }
+  nav a { color: var(--muted); text-decoration: none; padding: 12px 14px; white-space: nowrap;
+          font-size: 13.5px; font-weight: 600; letter-spacing: .3px; }
+  nav a:hover, nav a.active { color: var(--txt); }
+  main { max-width: 1200px; margin: 0 auto; padding: 8px 20px 60px; }
+  section { margin-top: 44px; }
+  h2 { font-size: 22px; margin: 0 0 4px; }
+  h2 .tag { color: var(--blue); font-size: 13px; letter-spacing: 1px; text-transform: uppercase; }
+  section > p.desc { color: var(--muted); margin: 0 0 18px; font-size: 14.5px; }
+  .grid { display: grid; gap: 16px; }
+  .stats { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; }
+  .stat-card .num { font-size: 30px; font-weight: 700; color: var(--blue); }
+  .stat-card .lbl { color: var(--muted); font-size: 13px; margin-top: 2px; }
+  .two-col { grid-template-columns: 1fr 1fr; }
+  @media (max-width: 860px) { .two-col { grid-template-columns: 1fr; } }
+  .chart { display: flex; align-items: flex-end; gap: 5px; height: 220px; padding-top: 18px; }
+  .bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; height: 100%; justify-content: flex-end; min-width: 0; }
+  .bar { width: 100%; max-width: 42px; border-radius: 4px 4px 0 0; background: linear-gradient(180deg, var(--blue), #1d4e8f);
+         transition: filter .15s; }
+  .bar:hover { filter: brightness(1.3); }
+  .bar.gold { background: linear-gradient(180deg, var(--gold), #7a5c10); }
+  .bar-label { font-size: 10.5px; color: var(--muted); margin-top: 6px; white-space: nowrap; transform: rotate(-45deg) translateY(-8px); transform-origin: top left; }
+  .bar-value { font-size: 10.5px; color: var(--txt); margin-bottom: 4px; opacity: .85; }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; letter-spacing: .4px; text-transform: uppercase;
+       position: sticky; top: 42px; background: var(--panel); z-index: 5; cursor: pointer; user-select: none; }
+  th:hover { color: var(--txt); }
+  tbody tr:hover { background: var(--panel2); }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .table-scroll { overflow: auto; max-height: 480px; border: 1px solid var(--line); border-radius: 10px; }
+  .table-scroll table { border-collapse: separate; border-spacing: 0; }
+  .pill { display: inline-block; padding: 1px 8px; border-radius: 99px; font-size: 11px; font-weight: 700; }
+  .pill.win { background: rgba(46,204,113,.15); color: var(--green); }
+  .pill.draw { background: rgba(241,196,15,.15); color: var(--amber); }
+  .pill.loss { background: rgba(231,76,60,.15); color: var(--red); }
+  .pill.ph { background: rgba(147,163,196,.15); color: var(--muted); }
+  .pill.stage { background: rgba(77,163,255,.12); color: var(--blue); }
+  .group-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 16px; }
+  .group-card h3 { margin: 0 0 10px; font-size: 15px; color: var(--gold); letter-spacing: 1px; }
+  .group-card ul { list-style: none; margin: 0; padding: 0; }
+  .group-card li { padding: 6px 0; border-bottom: 1px dashed var(--line); font-size: 14px; }
+  .group-card li:last-child { border-bottom: 0; }
+  .group-card .code { color: var(--muted); font-size: 12px; margin-left: 8px; }
+  .city-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+  .city-card .venue { font-weight: 600; font-size: 14.5px; }
+  .city-card .meta { color: var(--muted); font-size: 12.5px; margin-top: 3px; }
+  .city-card .match-count { color: var(--blue); font-weight: 700; }
+  .controls { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; align-items: center; }
+  input[type=text] { background: var(--panel2); color: var(--txt); border: 1px solid var(--line);
+                     border-radius: 8px; padding: 8px 12px; font-size: 13.5px; width: 260px; outline: none; }
+  input[type=text]:focus { border-color: var(--blue); }
+  select { background: var(--panel2); color: var(--txt); border: 1px solid var(--line);
+           border-radius: 8px; padding: 8px 10px; font-size: 13px; }
+  .btn { background: var(--panel2); color: var(--txt); border: 1px solid var(--line); border-radius: 8px;
+         padding: 8px 12px; font-size: 13px; cursor: pointer; }
+  .btn:hover { border-color: var(--blue); }
+  .btn.on { background: var(--blue); color: #061020; border-color: var(--blue); font-weight: 700; }
+  .foot { margin-top: 60px; padding: 24px 0 30px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12.5px; text-align: center; }
+  .foot code { background: var(--panel2); padding: 1px 6px; border-radius: 4px; }
+  .bracket-note { color: var(--muted); font-size: 12.5px; margin-top: 8px; }
+  .highlight { color: var(--gold); }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <h1>FIFA World Cup <span>1930 – 2026</span></h1>
+  <p class="sub">An interactive tour through every World Cup tournament: historical results from Uruguay 1930 to Brazil 2014,
+    the 2018 team preview, the full 2022 match-stats deep dive, and the complete schedule for the 48-team 2026 edition
+    in the USA, Canada and Mexico.</p>
+</header>
+
+<nav>
+  <div class="inner" id="nav"></div>
+</nav>
+
+<main id="app">
+  <section id="sec-overview">
+    <h2><span class="tag">OVERVIEW</span> The dataset at a glance</h2>
+    <p class="desc">Four datasets, one timeline: 852 match results from the 1930–2014 tournaments, pre-tournament team profiles from 2018,
+      per-match tactical statistics from Qatar 2022, and the full 2026 fixture schedule.</p>
+    <div class="grid stats" id="stat-cards"></div>
+  </section>
+
+  <section id="sec-historical">
+    <h2><span class="tag">1930 – 2014</span> Twenty tournaments, four eras</h2>
+    <p class="desc">Goals per game peaked in the 1950s and settled into a steady rhythm in the modern era. Attendance grew with the game.</p>
+    <div class="grid two-col">
+      <div class="card"><div class="chart" id="chart-gpg"></div></div>
+      <div class="card"><div class="chart" id="chart-att"></div></div>
+    </div>
+  </section>
+
+  <section id="sec-nations">
+    <h2><span class="tag">1930 – 2014</span> All-time top scorers &amp; biggest crowds</h2>
+    <p class="desc">Goals scored in home and away columns combined, and the stadiums with the highest average attendance (min. 5 matches).</p>
+    <div class="grid two-col">
+      <div class="card"><div class="chart" id="chart-nations"></div></div>
+      <div class="card"><div class="chart" id="chart-stadiums"></div></div>
+    </div>
+  </section>
+
+  <section id="sec-finals">
+    <h2><span class="tag">1930 – 2014</span> Every final, 1930 – 2014</h2>
+    <p class="desc">Winners in gold. Extra time and penalty shoot-outs are noted in the win conditions column.</p>
+    <div class="table-scroll"><table id="table-finals">
+      <thead><tr><th>Year</th><th>Champion</th><th>Score</th><th>Runner-up</th><th>Attendance</th><th>Win conditions</th></tr></thead>
+      <tbody></tbody>
+    </table></div>
+  </section>
+
+  <section id="sec-matches">
+    <h2><span class="tag">1930 – 2014</span> Match archive</h2>
+    <p class="desc">Search every one of the 852 historical matches — filter by team, year or stage.</p>
+    <div class="controls">
+      <input type="text" id="match-search" placeholder="Search team, city, stadium…">
+      <select id="match-year"></select>
+      <select id="match-stage"></select>
+    </div>
+    <div class="table-scroll"><table id="table-matches">
+      <thead><tr><th>Year</th><th>Stage</th><th>Home</th><th class="num">Score</th><th>Away</th><th class="num">Attendance</th><th>City</th><th>Stadium</th></tr></thead>
+      <tbody></tbody>
+    </table></div>
+  </section>
+
+  <section id="sec-2018">
+    <h2><span class="tag">2018 PREVIEW</span> Russia 2018 team profiles</h2>
+    <p class="desc">The pre-tournament dataset: FIFA ranking, previous appearances, titles and finals reached for all 32 qualified teams.</p>
+    <div class="table-scroll"><table id="table-2018">
+      <thead><tr><th>Team</th><th>Group</th><th class="num">FIFA rank</th><th class="num">Appearances</th><th class="num">Titles</th><th class="num">Finals</th><th class="num">Semifinals</th></tr></thead>
+      <tbody></tbody>
+    </table></div>
+  </section>
+
+  <section id="sec-2022">
+    <h2><span class="tag">QATAR 2022</span> The tactical deep dive</h2>
+    <p class="desc">64 matches, 88 metrics each: possession, attempts, passing, pressing, channels and discipline. Aggregated per team below.</p>
+    <div class="table-scroll"><table id="table-2022">
+      <thead><tr><th>Team</th><th class="num">P</th><th class="num">W</th><th class="num">D</th><th class="num">L</th><th class="num">GF</th><th class="num">GA</th><th class="num">Possession</th><th class="num">Attempts</th><th class="num">On target</th><th class="num">Passes</th><th class="num">Fouls</th><th class="num">Yellows</th></tr></thead>
+      <tbody></tbody>
+    </table></div>
+    <p class="desc" style="margin-top:18px">Notable group-stage results and every match scoreline:</p>
+    <div class="table-scroll" style="max-height:360px"><table id="table-2022m">
+      <thead><tr><th>Stage</th><th>Home</th><th class="num">Goals</th><th class="num">Poss.</th><th>Away</th><th class="num">Goals</th><th class="num">Poss.</th><th class="num">Attempts</th></tr></thead>
+      <tbody></tbody>
+    </table></div>
+  </section>
+
+  <section id="sec-2026-groups">
+    <h2><span class="tag">USA · CANADA · MEXICO 2026</span> Twelve groups of four</h2>
+    <p class="desc">48 teams — a first in World Cup history. Playoff qualifiers are still to be decided and are marked as placeholders.</p>
+    <div class="group-grid" id="group-cards"></div>
+  </section>
+
+  <section id="sec-2026-schedule">
+    <h2><span class="tag">2026</span> The full 104-match schedule</h2>
+    <p class="desc">From the opener in Mexico City on 11 June to the final at MetLife Stadium on 19 July 2026.</p>
+    <div class="controls" id="stage-filter"></div>
+    <div class="table-scroll"><table id="table-2026">
+      <thead><tr><th class="num">#</th><th>Stage</th><th>Date</th><th>Home</th><th class="num">vs</th><th>Away</th><th>Venue</th><th>City</th></tr></thead>
+      <tbody></tbody>
+    </table></div>
+    <p class="bracket-note">Knockout fixtures show slot labels (e.g. <code>1C vs 2F</code>) until qualifiers are known.</p>
+  </section>
+
+  <section id="sec-2026-cities">
+    <h2><span class="tag">2026</span> Sixteen host cities</h2>
+    <p class="desc">Eleven venues in the USA, two in Canada and three in Mexico.</p>
+    <div class="city-cards" id="city-cards"></div>
+  </section>
+
+  <footer class="foot">
+    Built from the <code>WC_1930-2014.csv</code>, <code>WC_2018.csv</code>, <code>WC_2022.csv</code> and
+    <code>WC_2026/</code> datasets. Data bundle generated by <code>build.py</code> — no external dependencies.
+  </footer>
+</main>
+
+<script src="data.js"></script>
+<script>
+"use strict";
+const D = window.WC_DATA;
+const $ = (id) => document.getElementById(id);
+
+/* ---------- helpers ---------- */
+const fmt = (n) => (n == null ? "—" : Number(n).toLocaleString("en-US"));
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) =>
+  ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+function barChart(el, items, { value = (d) => d.v, label = (d) => d.l, gold = () => false } = {}) {
+  const max = Math.max(...items.map(value), 1);
+  el.innerHTML = items.map((d, i) =>
+    `<div class="bar-wrap" title="${esc(label(d))}: ${fmt(value(d))}">
+       <div class="bar-value">${fmt(value(d))}</div>
+       <div class="bar ${gold(d, i, items) ? "gold" : ""}" style="height:${Math.round((value(d) / max) * 100)}%"></div>
+       <div class="bar-label">${esc(label(d))}</div>
+     </div>`).join("");
+}
+
+/* ---------- nav ---------- */
+const SECTIONS = [
+  ["sec-overview", "Overview"],
+  ["sec-historical", "Goals & attendance"],
+  ["sec-nations", "Top nations & stadiums"],
+  ["sec-finals", "Finals"],
+  ["sec-matches", "Match archive"],
+  ["sec-2018", "2018 preview"],
+  ["sec-2022", "2022 deep dive"],
+  ["sec-2026-groups", "2026 groups"],
+  ["sec-2026-schedule", "2026 schedule"],
+  ["sec-2026-cities", "Host cities"],
+];
+$("nav").innerHTML = SECTIONS.map(([id, name]) => `<a href="#${id}">${name}</a>`).join("");
+
+/* ---------- overview ---------- */
+const O = D.overview;
+$("stat-cards").innerHTML = [
+  [O.tournaments_1930_2014, "Tournaments (1930–2014)"],
+  [O.matches_1930_2014, "Historical matches"],
+  [O.goals_1930_2014, "Goals scored"],
+  [O.avg_gpg_1930_2014, "Avg goals per game"],
+  [fmt(O.total_attendance_1930_2014), "Total attendance"],
+  [O.matches_2022, "2022 matches"],
+  [O.teams_2026, "Teams in 2026"],
+  [O.matches_2026, "Matches in 2026"],
+].map(([n, l]) => `<div class="card stat-card"><div class="num">${n}</div><div class="lbl">${l}</div></div>`).join("");
+
+/* ---------- historical charts ---------- */
+barChart($("chart-gpg"), D.yearly.map((y) => ({ l: y.year, v: y.gpg })));
+barChart($("chart-att"), D.yearly.map((y) => ({ l: y.year, v: y.avg_att })));
+barChart($("chart-nations"), D.top_nations.map((t) => ({ l: t.team, v: t.goals })), { gold: (d) => d.team === D.top_nations[0].team });
+barChart($("chart-stadiums"), D.top_stadiums.map((s) => ({ l: s.stadium, v: s.avg_att })));
+
+/* ---------- finals ---------- */
+$("table-finals").querySelector("tbody").innerHTML = D.finals.map((f) => {
+  const champ = f.champion;
+  const hl = (name) => (champ === name ? '<span class="highlight">' + esc(name) + "</span>" : esc(name));
+  return `<tr><td>${f.year}</td>
+    <td>${hl(f.home)}</td>
+    <td class="num"><b>${f.home_goals} – ${f.away_goals}</b></td>
+    <td>${hl(f.away)}</td>
+    <td class="num">${fmt(f.att)}</td>
+    <td>${esc(f.win_conditions || "—")}</td></tr>`;
+}).join("");
+
+/* ---------- match archive ---------- */
+const matchYearSel = $("match-year");
+const matchStageSel = $("match-stage");
+const years = [...new Set(D.matches_hist.map((m) => m.year))].sort((a, b) => a - b);
+const stages = [...new Set(D.matches_hist.map((m) => m.stage))].sort();
+matchYearSel.innerHTML = `<option value="">All years</option>` + years.map((y) => `<option>${y}</option>`).join("");
+matchStageSel.innerHTML = `<option value="">All stages</option>` + stages.map((s) => `<option>${esc(s)}</option>`).join("");
+
+function renderMatches() {
+  const q = $("match-search").value.trim().toLowerCase();
+  const y = matchYearSel.value, s = matchStageSel.value;
+  const rows = D.matches_hist.filter((m) =>
+    (!y || m.year === +y) &&
+    (!s || m.stage === s) &&
+    (!q || [m.home, m.away, m.city, m.stadium, m.stage].some((v) => String(v ?? "").toLowerCase().includes(q)))
+  ).slice(0, 400);
+  $("table-matches").querySelector("tbody").innerHTML = rows.map((m) =>
+    `<tr><td>${m.year}</td><td>${esc(m.stage)}</td><td>${esc(m.home)}</td>
+     <td class="num"><b>${m.hg} – ${m.ag}</b></td><td>${esc(m.away)}</td>
+     <td class="num">${fmt(m.att)}</td><td>${esc(m.city)}</td><td>${esc(m.stadium)}</td></tr>`).join("")
+    || `<tr><td colspan="8" style="text-align:center;color:var(--muted)">No matches match your filters.</td></tr>`;
+}
+$("match-search").addEventListener("input", renderMatches);
+matchYearSel.addEventListener("change", renderMatches);
+matchStageSel.addEventListener("change", renderMatches);
+renderMatches();
+
+/* ---------- 2018 preview ---------- */
+$("table-2018").querySelector("tbody").innerHTML = D.preview_2018.map((t) =>
+  `<tr><td><b>${esc(t.team)}</b></td><td>${esc(t.group)}</td>
+   <td class="num">${fmt(t.fifa_rank)}</td><td class="num">${fmt(t.appearances)}</td>
+   <td class="num">${fmt(t.titles)}</td><td class="num">${fmt(t.finals)}</td>
+   <td class="num">${fmt(t.semis)}</td></tr>`).join("");
+
+/* ---------- 2022 ---------- */
+$("table-2022").querySelector("tbody").innerHTML = D.teams_2022.map((t) =>
+  `<tr><td><b>${esc(t.team)}</b></td><td class="num">${t.p}</td>
+   <td class="num">${t.w}</td><td class="num">${t.d}</td><td class="num">${t.l}</td>
+   <td class="num">${t.gf}</td><td class="num">${t.ga}</td>
+   <td class="num">${t.pos}%</td><td class="num">${t.att}</td><td class="num">${t.ont}</td>
+   <td class="num">${fmt(t.passc)}</td><td class="num">${t.fouls}</td><td class="num">${t.yellow}</td></tr>`).join("");
+
+$("table-2022m").querySelector("tbody").innerHTML = D.matches_2022.map((m) =>
+  `<tr><td>${esc(m.cat)}</td><td>${esc(m.t1)}</td>
+   <td class="num"><b>${m.g1} – ${m.g2}</b></td><td class="num">${m.pos1}%</td>
+   <td>${esc(m.t2)}</td><td class="num" style="color:var(--muted)">${m.g2} – ${m.g1}</td>
+   <td class="num">${m.pos2}%</td><td class="num">${m.att1} / ${m.att2}</td></tr>`).join("");
+
+/* ---------- 2026 groups ---------- */
+$("group-cards").innerHTML = D.groups_2026.map((g) =>
+  `<div class="card group-card"><h3>Group ${g.letter}</h3><ul>${g.teams.map((t) =>
+    `<li>${esc(t.name)}<span class="code">${esc(t.code)}</span>${t.placeholder ? ' <span class="pill ph">TBD</span>' : ""}</li>`
+  ).join("")}</ul></div>`).join("");
+
+/* ---------- 2026 schedule ---------- */
+const stageBtns = $("stage-filter");
+const stageList = [...new Set(D.schedule_2026.map((m) => m.stage))];
+stageBtns.innerHTML = `<button class="btn on" data-stage="">All (${D.schedule_2026.length})</button>` +
+  stageList.map((s) => `<button class="btn" data-stage="${esc(s)}">${esc(s)}</button>`).join("");
+let curStage = "";
+stageBtns.addEventListener("click", (e) => {
+  const b = e.target.closest("button");
+  if (!b) return;
+  curStage = b.dataset.stage;
+  stageBtns.querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b));
+  render2026();
+});
+
+function render2026() {
+  const rows = D.schedule_2026.filter((m) => !curStage || m.stage === curStage);
+  $("table-2026").querySelector("tbody").innerHTML = rows.map((m) => {
+    const home = m.home ? `${esc(m.home)} <span class="pill ph" style="font-size:10px">${esc(m.home_code)}</span>${m.home_ph ? " <span class=\"pill ph\">TBD</span>" : ""}` : `<span class="pill ph">${esc(m.label.split(" vs ")[0])}</span>`;
+    const away = m.away ? `${esc(m.away)} <span class="pill ph" style="font-size:10px">${esc(m.away_code)}</span>${m.away_ph ? " <span class=\"pill ph\">TBD</span>" : ""}` : `<span class="pill ph">${esc(m.label.split(" vs ")[1])}</span>`;
+    return `<tr><td class="num">${m.num}</td>
+      <td><span class="pill stage">${esc(m.stage)}</span></td>
+      <td>${esc(m.iso)} <span class="pill ph">${esc(m.tz)}</span></td>
+      <td>${home}</td><td class="num" style="color:var(--muted)">vs</td>
+      <td>${away}</td><td>${esc(m.venue)}</td><td>${esc(m.city)}, ${esc(m.country)}</td></tr>`;
+  }).join("");
+}
+render2026();
+
+/* ---------- 2026 cities ---------- */
+$("city-cards").innerHTML = D.cities_2026.map((c) =>
+  `<div class="card city-card"><div class="venue">${esc(c.venue)}</div>
+   <div class="meta">${esc(c.city)} · ${esc(c.country)} <span class="pill ph">${esc(c.code)}</span></div>
+   <div class="meta">${esc(c.region)} cluster</div>
+   <div class="meta"><span class="match-count">${c.matches}</span> matches</div></div>`).join("");
+</script>
+</body>
+</html>

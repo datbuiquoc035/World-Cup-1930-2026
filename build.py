@@ -150,9 +150,10 @@ print(f"  Historical: {len(matches_hist)} matches, {len(yearly)} tournaments")
 
 # ---------------------------------------------------------------- 2018
 print("Loading 2018 data...")
-m18 = pd.read_csv(ROOT / "World_cup_2018_matches.csv")
-g18 = pd.read_csv(ROOT / "World_cup_2018_goals.csv")
-c18 = pd.read_csv(ROOT / "World_cup_2018_country.csv")
+D18 = ROOT / "data_2018"
+m18 = pd.read_csv(D18 / "World_cup_2018_matches.csv")
+g18 = pd.read_csv(D18 / "World_cup_2018_goals.csv")
+c18 = pd.read_csv(D18 / "World_cup_2018_country.csv")
 
 matches_2018 = []
 for _, r in m18.iterrows():

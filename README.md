@@ -16,9 +16,9 @@ ML baseline.
 | File | Contents | Size |
 |---|---|---|
 | `WC_1930-2014.csv` | Every match result across 20 tournaments (Year, Stage, Stadium, City, teams, goals, half-time scores, attendance, referee, win conditions). Cleaned: no duplicate rows, no blank rows | 836 rows × 20 cols |
-| `World_cup_2018_matches.csv` | Russia 2018 match stats: shots, possession, fouls, cards, corners, extra time and penalty-shootout scores | 64 rows × 30 cols |
-| `World_cup_2018_goals.csv` | Every goal of Russia 2018: scorer, minute, penalty / own-goal flags | 169 rows × 9 cols |
-| `World_cup_2018_country.csv` | Pre-tournament FIFA rank and how far each of the 32 teams went | 32 rows × 11 cols |
+| `data_2018/World_cup_2018_matches.csv` | Russia 2018 match stats: shots, possession, fouls, cards, corners, extra time and penalty-shootout scores | 64 rows × 30 cols |
+| `data_2018/World_cup_2018_goals.csv` | Every goal of Russia 2018: scorer, minute, penalty / own-goal flags | 169 rows × 9 cols |
+| `data_2018/World_cup_2018_country.csv` | Pre-tournament FIFA rank and how far each of the 32 teams went | 32 rows × 11 cols |
 | `WC_2022.csv` | Qatar 2022 match-by-match team stats: possession (numeric), attempts, passes, crosses, pressing, cards, fouls, offsides and more | 64 rows × 88 cols |
 
 ### 2026 simulation

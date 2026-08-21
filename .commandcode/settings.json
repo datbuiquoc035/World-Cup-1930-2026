@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Shell(sed -i 's|`FIFA-world-cup-2018/Data/` — 2018 Russia: 64 matches, 169 goals, 32 team rankings|`World_cup_2018_*.csv` — 2018 Russia: 64 matches, 169 goals, 32 team rankings|g; s|`FIFA-World-Cup-2026-Dataset/` — Complete 2026 tournament data|`*.csv` (2026 files) — Complete 2026 tournament data|g' analyze.ipynb)"
+    ],
+    "deny": [],
+    "defaultMode": "default"
+  }
+}

@@ -3,109 +3,136 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Interactive dataset explorer for every FIFA World Cup: 1930–2014 results, Russia 2018 preview, Qatar 2022 match stats and the full 48-team 2026 schedule.">
+<meta name="description" content="Interactive dataset explorer for every FIFA World Cup: historical results, Russia 2018 preview, Qatar 2022 match stats and the full 2026 schedule.">
 <title>World Cup 1930–2026 · Data Explorer</title>
 <style>
   :root {
     --bg: #0b1220; --panel: #111a2e; --panel2: #16213a; --line: #243357;
     --txt: #e8edf7; --muted: #93a3c4; --green: #2ecc71; --amber: #f1c40f;
     --red: #e74c3c; --blue: #4da3ff; --gold: #d4af37;
+    --acc-history: #4da3ff; --acc-y2018: #f1c40f; --acc-y2022: #b07cff; --acc-y2026: #2ecc71;
     --nav-h: 43px;
   }
-  * { box-sizing: border-box; }
-  html { scroll-behavior: smooth; }
-  @media (prefers-reduced-motion: reduce) {
-    html { scroll-behavior: auto; }
-    *, *::before, *::after { transition: none !important; animation: none !important; }
-  }
-  a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible {
-    outline: 2px solid var(--blue); outline-offset: 2px; border-radius: 4px;
-  }
-  body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-         background: radial-gradient(1200px 600px at 70% -10%, #1a2b52 0%, var(--bg) 55%) fixed;
-         color: var(--txt); line-height: 1.5; }
-  header.hero { padding: 56px 24px 40px; text-align: center;
-                border-bottom: 1px solid var(--line);
-                background: linear-gradient(180deg, rgba(77,163,255,.08), transparent); }
-  header.hero h1 { font-size: clamp(26px, 5vw, 44px); margin: 0 0 6px; letter-spacing: .5px; }
-  header.hero h1 span { color: var(--gold); }
-  header.hero p.sub { color: var(--muted); margin: 0 auto; max-width: 720px; }
-  nav { position: sticky; top: 0; z-index: 50; background: rgba(11,18,32,.92);
-        backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
-  nav .inner { max-width: 1200px; margin: 0 auto; display: flex; gap: 4px; overflow-x: auto; padding: 0 12px; }
-  nav a { color: var(--muted); text-decoration: none; padding: 12px 14px; white-space: nowrap;
-          font-size: 13.5px; font-weight: 600; letter-spacing: .3px; }
-  nav a:hover, nav a.active { color: var(--txt); }
-  main { max-width: 1200px; margin: 0 auto; padding: 8px 20px 60px; }
-  section { margin-top: 44px; scroll-margin-top: calc(var(--nav-h) + 16px); }
-  h2 { font-size: 22px; margin: 0 0 4px; }
-  h2 .tag { color: var(--blue); font-size: 13px; letter-spacing: 1px; text-transform: uppercase; }
-  section > p.desc { color: var(--muted); margin: 0 0 18px; font-size: 14.5px; }
-  .grid { display: grid; gap: 16px; }
-  .stats { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
-  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; }
-  .stat-card .num { font-size: 30px; font-weight: 700; color: var(--blue); }
-  .stat-card .lbl { color: var(--muted); font-size: 13px; margin-top: 2px; }
-  .two-col { grid-template-columns: 1fr 1fr; }
-  @media (max-width: 860px) { .two-col { grid-template-columns: 1fr; } }
-  .chart { display: flex; align-items: flex-end; gap: 5px; height: 220px; padding-top: 18px;
-           overflow-x: auto; overflow-y: visible; scrollbar-width: thin; }
-  .bar-wrap { flex: 1 0 26px; display: flex; flex-direction: column; align-items: center; height: 100%; justify-content: flex-end; min-width: 26px; }
-  .bar { width: 100%; max-width: 42px; border-radius: 4px 4px 0 0; background: linear-gradient(180deg, var(--blue), #1d4e8f);
-         transition: filter .15s; }
-  .bar:hover { filter: brightness(1.3); }
-  .bar.gold { background: linear-gradient(180deg, var(--gold), #7a5c10); }
-  .bar-label { font-size: 10.5px; color: var(--muted); margin-top: 6px; white-space: nowrap;
-               max-width: 72px; overflow: hidden; text-overflow: ellipsis;
-               transform: rotate(-45deg) translateY(-8px); transform-origin: top left; }
-  .bar-value { font-size: 10.5px; color: var(--txt); margin-bottom: 4px; opacity: .85; }
-  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
-  th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap; }
-  th { color: var(--muted); font-weight: 600; font-size: 12px; letter-spacing: .4px; text-transform: uppercase;
-       position: sticky; top: 0; background: var(--panel); z-index: 5; cursor: pointer; user-select: none; }
-  th:hover { color: var(--txt); }
-  tbody tr:hover { background: var(--panel2); }
-  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
-  .table-scroll { overflow: auto; max-height: 480px; border: 1px solid var(--line); border-radius: 10px; }
-  .table-scroll table { border-collapse: separate; border-spacing: 0; }
-  .pill { display: inline-block; padding: 1px 8px; border-radius: 99px; font-size: 11px; font-weight: 700; }
-  .pill.win { background: rgba(46,204,113,.15); color: var(--green); }
-  .pill.draw { background: rgba(241,196,15,.15); color: var(--amber); }
-  .pill.loss { background: rgba(231,76,60,.15); color: var(--red); }
-  .pill.ph { background: rgba(147,163,196,.15); color: var(--muted); }
-  .pill.stage { background: rgba(77,163,255,.12); color: var(--blue); }
-  .group-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 16px; }
-  .group-card h3 { margin: 0 0 10px; font-size: 15px; color: var(--gold); letter-spacing: 1px; }
-  .group-card ul { list-style: none; margin: 0; padding: 0; }
-  .group-card li { padding: 6px 0; border-bottom: 1px dashed var(--line); font-size: 14px; }
-  .group-card li:last-child { border-bottom: 0; }
-  .group-card .code { color: var(--muted); font-size: 12px; margin-left: 8px; }
-  .city-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
-  .city-card .venue { font-weight: 600; font-size: 14.5px; }
-  .city-card .meta { color: var(--muted); font-size: 12.5px; margin-top: 3px; }
-  .city-card .match-count { color: var(--blue); font-weight: 700; }
-  .controls { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; align-items: center; }
-  .count { color: var(--muted); font-size: 12.5px; margin: -6px 0 10px; }
-  input[type=text] { background: var(--panel2); color: var(--txt); border: 1px solid var(--line);
-                     border-radius: 8px; padding: 8px 12px; font-size: 13.5px; width: 260px; outline: none; }
-  input[type=text]:focus { border-color: var(--blue); }
-  select { background: var(--panel2); color: var(--txt); border: 1px solid var(--line);
-           border-radius: 8px; padding: 8px 10px; font-size: 13px; }
-  .btn { background: var(--panel2); color: var(--txt); border: 1px solid var(--line); border-radius: 8px;
-         padding: 8px 12px; font-size: 13px; cursor: pointer; }
-  .btn:hover { border-color: var(--blue); }
-  .btn.on { background: var(--blue); color: #061020; border-color: var(--blue); font-weight: 700; }
-  .foot { margin-top: 60px; padding: 24px 0 30px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12.5px; text-align: center; }
-  .foot code { background: var(--panel2); padding: 1px 6px; border-radius: 4px; }
-  .bracket-note { color: var(--muted); font-size: 12.5px; margin-top: 8px; }
-  .highlight { color: var(--gold); }
-  #to-top { position: fixed; right: 18px; bottom: 18px; z-index: 60; opacity: 0; pointer-events: none;
-            transition: opacity .2s; box-shadow: 0 4px 16px rgba(0,0,0,.45); }
-  #to-top.show { opacity: 1; pointer-events: auto; }
-  @media (max-width: 640px) {
-    input[type=text], select { font-size: 16px; }
-    #to-top { right: 12px; bottom: 12px; }
-  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{transition:none!important;animation:none!important}}
+  a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--blue);outline-offset:2px;border-radius:4px}
+  body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:radial-gradient(1200px 600px at 70% -10%,#1a2b52 0%,var(--bg) 55%) fixed;color:var(--txt);line-height:1.5}
+  header.hero{padding:56px 24px 40px;text-align:center;border-bottom:1px solid var(--line);background:linear-gradient(180deg,rgba(77,163,255,.08),transparent)}
+  header.hero h1{font-size:clamp(26px,5vw,44px);margin:0 0 6px;letter-spacing:.5px}
+  header.hero h1 span{color:var(--gold)}
+  header.hero p.sub{color:var(--muted);margin:0 auto;max-width:720px}
+  nav{position:sticky;top:0;z-index:50;background:rgba(11,18,32,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+  nav .inner{max-width:1200px;margin:0 auto;display:flex;gap:0;overflow-x:auto;padding:0 12px;scrollbar-width:none}
+  nav .inner::-webkit-scrollbar{display:none}
+  .tabs button{background:none;border:none;border-bottom:3px solid transparent;color:var(--muted);padding:14px 16px;white-space:nowrap;font-size:13.5px;font-weight:600;letter-spacing:.3px;cursor:pointer;font-family:inherit}
+  .tabs button:hover{color:var(--txt)}
+  .tabs button[aria-selected="true"]{color:var(--txt);border-bottom-color:var(--gold)}
+  .tabs button[data-era="history"][aria-selected="true"]{border-bottom-color:var(--acc-history)}
+  .tabs button[data-era="y2018"][aria-selected="true"]{border-bottom-color:var(--acc-y2018)}
+  .tabs button[data-era="y2022"][aria-selected="true"]{border-bottom-color:var(--acc-y2022)}
+  .tabs button[data-era="y2026"][aria-selected="true"]{border-bottom-color:var(--acc-y2026)}
+  main{max-width:1200px;margin:0 auto;padding:8px 20px 60px}
+  .panel[hidden]{display:none}
+  section{margin-top:44px;scroll-margin-top:calc(var(--nav-h) + 56px)}
+  h2{font-size:22px;margin:0 0 4px}
+  h2 .tag{font-size:13px;letter-spacing:1px;text-transform:uppercase}
+  section[data-era] h2 .tag{color:var(--acc)}
+  [data-era="history"]{--acc:var(--acc-history)}
+  [data-era="y2018"]{--acc:var(--acc-y2018)}
+  [data-era="y2022"]{--acc:var(--acc-y2022)}
+  [data-era="y2026"]{--acc:var(--acc-y2026)}
+  section>p.desc{color:var(--muted);margin:0 0 18px;font-size:14.5px}
+  .grid{display:grid;gap:16px}
+  .stats{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+  .stat-card .num{font-size:30px;font-weight:700;color:var(--blue)}
+  .stat-card .lbl{color:var(--muted);font-size:13px;margin-top:2px}
+  .two-col{grid-template-columns:1fr 1fr}
+  @media(max-width:860px){.two-col{grid-template-columns:1fr}}
+  .chart{display:flex;align-items:flex-end;gap:5px;height:220px;padding-top:18px;overflow-x:auto;overflow-y:visible;scrollbar-width:thin}
+  .bar-wrap{flex:1 0 26px;display:flex;flex-direction:column;align-items:center;height:100%;justify-content:flex-end;min-width:26px}
+  .bar{width:100%;max-width:42px;border-radius:4px 4px 0 0;background:linear-gradient(180deg,var(--blue),#1d4e8f);transition:filter .15s}
+  .bar:hover{filter:brightness(1.3)}
+  .bar.gold{background:linear-gradient(180deg,var(--gold),#7a5c10)}
+  .bar-label{font-size:10.5px;color:var(--muted);margin-top:6px;white-space:nowrap;max-width:72px;overflow:hidden;text-overflow:ellipsis;transform:rotate(-45deg) translateY(-8px);transform-origin:top left}
+  .bar-value{font-size:10.5px;color:var(--txt);margin-bottom:4px;opacity:.85}
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th,td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+  th{color:var(--muted);font-weight:600;font-size:12px;letter-spacing:.4px;text-transform:uppercase;background:var(--panel);cursor:pointer;user-select:none}
+  th:hover{color:var(--txt)}
+  tbody tr:hover{background:var(--panel2)}
+  td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+  .table-scroll{overflow:auto;max-height:480px;border:1px solid var(--line);border-radius:10px;position:relative}
+  .table-scroll table{border-collapse:separate;border-spacing:0}
+  .table-scroll td:first-child,.table-scroll th:first-child{position:sticky;left:0;background:var(--panel);z-index:2}
+  .table-scroll thead th:first-child{z-index:6;top:0}
+  .table-scroll tbody td:first-child{box-shadow:inset -1px 0 0 var(--line)}
+  .table-scroll.scrolled tbody td:first-child,.table-scroll.scrolled thead th:first-child{box-shadow:inset -1px 0 0 var(--line),6px 0 10px -6px rgba(0,0,0,.65)}
+  tbody tr:hover td:first-child{background:var(--panel2)}
+  .pill{display:inline-block;padding:1px 8px;border-radius:99px;font-size:11px;font-weight:700}
+  .pill.win{background:rgba(46,204,113,.15);color:var(--green)}
+  .pill.draw{background:rgba(241,196,15,.15);color:var(--amber)}
+  .pill.loss{background:rgba(231,76,60,.15);color:var(--red)}
+  .pill.ph{background:rgba(147,163,196,.15);color:var(--muted)}
+  .pill.stage{background:rgba(77,163,255,.12);color:var(--blue)}
+  [data-era="history"] .pill.stage{background:rgba(77,163,255,.12);color:var(--acc-history)}
+  [data-era="y2018"] .pill.stage{background:rgba(241,196,15,.12);color:var(--acc-y2018)}
+  [data-era="y2022"] .pill.stage{background:rgba(176,124,255,.13);color:var(--acc-y2022)}
+  [data-era="y2026"] .pill.stage{background:rgba(46,204,113,.13);color:var(--acc-y2026)}
+  .group-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:16px}
+  .group-card h3{margin:0 0 10px;font-size:15px;color:var(--gold);letter-spacing:1px}
+  .group-card ul{list-style:none;margin:0;padding:0}
+  .group-card li{padding:6px 0;border-bottom:1px dashed var(--line);font-size:14px}
+  .group-card li:last-child{border-bottom:0}
+  .group-card .code{color:var(--muted);font-size:12px;margin-left:8px}
+  .city-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+  .city-card .venue{font-weight:600;font-size:14.5px}
+  .city-card .meta{color:var(--muted);font-size:12.5px;margin-top:3px}
+  .city-card .match-count{color:var(--blue);font-weight:700}
+  .controls{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:center}
+  .count{color:var(--muted);font-size:12.5px;margin:-6px 0 10px}
+  input[type=text]{background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:8px 12px;font-size:13.5px;width:260px;outline:none}
+  input[type=text]:focus{border-color:var(--blue)}
+  select{background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13px}
+  .btn{background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:8px 12px;font-size:13px;cursor:pointer}
+  .btn:hover{border-color:var(--blue)}
+  .btn.on{background:var(--blue);color:#061020;border-color:var(--blue);font-weight:700}
+  .bracket-note{color:var(--muted);font-size:12.5px;margin-top:8px}
+  .highlight{color:var(--gold)}
+  .team-link{cursor:pointer;border-bottom:1px dashed currentColor}
+  .team-link:hover{color:var(--gold)}
+  .flag{margin-right:4px}
+  .pager{display:flex;justify-content:center;align-items:center;gap:6px;margin:14px 0}
+  .pager button{background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:6px;padding:5px 10px;font-size:12.5px;cursor:pointer;font-family:inherit}
+  .pager button:hover:not(:disabled){border-color:var(--blue)}
+  .pager button[aria-current="page"]{background:var(--blue);color:#061020;border-color:var(--blue);font-weight:700}
+  .pager button:disabled{opacity:.4;cursor:default}
+  .pager .dots{color:var(--muted);font-size:12px}
+  #match-modal{background:var(--panel);color:var(--txt);border:1px solid var(--line);border-radius:14px;padding:0;width:min(92vw,600px);max-height:85vh;overflow-y:auto}
+  #match-modal::backdrop{background:rgba(4,8,18,.7);backdrop-filter:blur(2px)}
+  .mm-head{padding:20px 22px 0}
+  .mm-close{float:right;background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;padding:4px 8px;margin:-4px -4px 0 0}
+  .mm-close:hover{color:var(--txt)}
+  .mm-head h3{margin:0 0 4px;font-size:18px;line-height:1.3}
+  .mm-head .sub{color:var(--muted);font-size:13px}
+  .mm-body{padding:14px 22px 20px;font-size:13.5px}
+  .mm-meta{display:grid;grid-template-columns:120px 1fr;gap:6px 12px}
+  .mm-meta .lbl{color:var(--muted);font-weight:600;font-size:12px;letter-spacing:.3px}
+  .mm-meta .val{white-space:normal;word-break:break-word}
+  .cmp{display:grid;grid-template-columns:1fr auto 1fr;gap:6px 14px;font-size:13.5px}
+  .cmp .l{color:var(--muted);text-align:center;grid-column:2;font-size:12px;font-weight:600;letter-spacing:.3px;align-self:center}
+  .cmp .v{text-align:center;padding:3px 8px;border-radius:6px;font-variant-numeric:tabular-nums}
+  .cmp .v.hi{background:rgba(212,175,55,.12);color:var(--gold);font-weight:700}
+  .foot{margin-top:60px;padding:24px 0 30px;border-top:1px solid var(--line);color:var(--muted);font-size:12.5px;text-align:center}
+  .foot code{background:var(--panel2);padding:1px 6px;border-radius:4px}
+  .chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;margin-top:4px}
+  .chip{background:var(--panel2);color:var(--muted);border:1px solid var(--line);border-radius:99px;padding:4px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit}
+  .chip:hover{color:var(--txt);border-color:var(--blue)}
+  .chip.on{background:rgba(77,163,255,.15);color:var(--blue);border-color:var(--blue)}
+  #to-top{position:fixed;right:18px;bottom:18px;z-index:60;opacity:0;pointer-events:none;transition:opacity .2s;box-shadow:0 4px 16px rgba(0,0,0,.45)}
+  #to-top.show{opacity:1;pointer-events:auto}
+  @media(max-width:640px){input[type=text],select{font-size:16px}#to-top{right:12px;bottom:12px}.tabs button{padding:12px 10px;font-size:12.5px}}
 </style>
 </head>
 <body>
@@ -117,111 +144,129 @@
     in the USA, Canada and Mexico.</p>
 </header>
 
-<nav>
-  <div class="inner" id="nav"></div>
-</nav>
+<nav><div class="inner tabs" id="tabs" role="tablist" aria-label="Tournament eras"></div></nav>
 
 <main id="app">
-  <section id="sec-overview">
-    <h2><span class="tag">OVERVIEW</span> The dataset at a glance</h2>
-    <p class="desc">Four datasets, one timeline: 852 match results from the 1930–2014 tournaments, pre-tournament team profiles from 2018,
-      per-match tactical statistics from Qatar 2022, and the full 2026 fixture schedule.</p>
-    <div class="grid stats" id="stat-cards"></div>
-  </section>
 
-  <section id="sec-historical">
-    <h2><span class="tag">1930 – 2014</span> Twenty tournaments, four eras</h2>
-    <p class="desc">Goals per game peaked in the 1950s and settled into a steady rhythm in the modern era. Attendance grew with the game.</p>
-    <div class="grid two-col">
-      <div class="card"><div class="chart" id="chart-gpg"></div></div>
-      <div class="card"><div class="chart" id="chart-att"></div></div>
-    </div>
-  </section>
+  <div class="panel" id="panel-overview" role="tabpanel" aria-labelledby="tab-overview">
+    <section id="sec-overview">
+      <h2><span class="tag">OVERVIEW</span> The dataset at a glance</h2>
+      <p class="desc">Four datasets, one timeline: 852 match results from the 1930–2014 tournaments, pre-tournament team profiles from 2018,
+        per-match tactical statistics from Qatar 2022, and the full 2026 fixture schedule.</p>
+      <div class="grid stats" id="stat-cards"></div>
+    </section>
+  </div>
 
-  <section id="sec-nations">
-    <h2><span class="tag">1930 – 2014</span> All-time top scorers &amp; biggest crowds</h2>
-    <p class="desc">Goals scored in home and away columns combined, and the stadiums with the highest average attendance (min. 5 matches).</p>
-    <div class="grid two-col">
-      <div class="card"><div class="chart" id="chart-nations"></div></div>
-      <div class="card"><div class="chart" id="chart-stadiums"></div></div>
-    </div>
-  </section>
+  <div class="panel" id="panel-history" hidden role="tabpanel" aria-labelledby="tab-history">
+    <div class="chips" id="chips-history"></div>
+    <section id="sec-historical" data-era="history">
+      <h2><span class="tag">1930 – 2014</span> Twenty tournaments, four eras</h2>
+      <p class="desc">Goals per game peaked in the 1950s and settled into a steady rhythm in the modern era. Attendance grew with the game.</p>
+      <div class="grid two-col">
+        <div class="card"><div class="chart" id="chart-gpg"></div></div>
+        <div class="card"><div class="chart" id="chart-att"></div></div>
+      </div>
+    </section>
+    <section id="sec-nations" data-era="history">
+      <h2><span class="tag">1930 – 2014</span> All-time top scorers &amp; biggest crowds</h2>
+      <p class="desc">Goals scored in home and away columns combined, and the stadiums with the highest average attendance (min. 5 matches).</p>
+      <div class="grid two-col">
+        <div class="card"><div class="chart" id="chart-nations"></div></div>
+        <div class="card"><div class="chart" id="chart-stadiums"></div></div>
+      </div>
+    </section>
+    <section id="sec-finals" data-era="history">
+      <h2><span class="tag">1930 – 2014</span> Every final, 1930 – 2014</h2>
+      <p class="desc">Winners in gold. Extra time and penalty shoot-outs are noted in the win conditions column. Click a row for details.</p>
+      <div class="table-scroll"><table id="table-finals">
+        <thead><tr><th>Year</th><th>Champion</th><th>Score</th><th>Runner-up</th><th>Attendance</th><th>Win conditions</th></tr></thead>
+        <tbody></tbody>
+      </table></div>
+    </section>
+    <section id="sec-matches" data-era="history">
+      <h2><span class="tag">1930 – 2014</span> Match archive</h2>
+      <p class="desc">Search every one of the 852 historical matches — filter by team, year or stage. Click a row for match details.</p>
+      <div class="controls">
+        <input type="text" id="match-search" placeholder="Search team, city, stadium…" aria-label="Search matches by team, city or stadium">
+        <select id="match-year" aria-label="Filter by year"></select>
+        <select id="match-stage" aria-label="Filter by stage"></select>
+      </div>
+      <p class="count" id="match-count" role="status" aria-live="polite"></p>
+      <div class="table-scroll"><table id="table-matches">
+        <thead><tr><th>Year</th><th>Stage</th><th>Home</th><th class="num">Score</th><th>Away</th><th class="num">Attendance</th><th>City</th><th>Stadium</th></tr></thead>
+        <tbody></tbody>
+      </table></div>
+      <div class="pager" id="match-pager" role="navigation" aria-label="Match archive pages"></div>
+    </section>
+  </div>
 
-  <section id="sec-finals">
-    <h2><span class="tag">1930 – 2014</span> Every final, 1930 – 2014</h2>
-    <p class="desc">Winners in gold. Extra time and penalty shoot-outs are noted in the win conditions column.</p>
-    <div class="table-scroll"><table id="table-finals">
-      <thead><tr><th>Year</th><th>Champion</th><th>Score</th><th>Runner-up</th><th>Attendance</th><th>Win conditions</th></tr></thead>
-      <tbody></tbody>
-    </table></div>
-  </section>
+  <div class="panel" id="panel-y2018" hidden role="tabpanel" aria-labelledby="tab-y2018">
+    <div class="chips" id="chips-y2018"></div>
+    <section id="sec-2018" data-era="y2018">
+      <h2><span class="tag">2018 PREVIEW</span> Russia 2018 team profiles</h2>
+      <p class="desc">The pre-tournament dataset: FIFA ranking, previous appearances, titles and finals reached for all 32 qualified teams.</p>
+      <div class="table-scroll"><table id="table-2018">
+        <thead><tr><th>Team</th><th>Group</th><th class="num">FIFA rank</th><th class="num">Appearances</th><th class="num">Titles</th><th class="num">Finals</th><th class="num">Semifinals</th></tr></thead>
+        <tbody></tbody>
+      </table></div>
+    </section>
+  </div>
 
-  <section id="sec-matches">
-    <h2><span class="tag">1930 – 2014</span> Match archive</h2>
-    <p class="desc">Search every one of the 852 historical matches — filter by team, year or stage.</p>
-    <div class="controls">
-      <input type="text" id="match-search" placeholder="Search team, city, stadium…" aria-label="Search matches by team, city or stadium">
-      <select id="match-year" aria-label="Filter by year"></select>
-      <select id="match-stage" aria-label="Filter by stage"></select>
-    </div>
-    <p class="count" id="match-count" role="status" aria-live="polite"></p>
-    <div class="table-scroll"><table id="table-matches">
-      <thead><tr><th>Year</th><th>Stage</th><th>Home</th><th class="num">Score</th><th>Away</th><th class="num">Attendance</th><th>City</th><th>Stadium</th></tr></thead>
-      <tbody></tbody>
-    </table></div>
-  </section>
+  <div class="panel" id="panel-y2022" hidden role="tabpanel" aria-labelledby="tab-y2022">
+    <div class="chips" id="chips-y2022"></div>
+    <section id="sec-2022" data-era="y2022">
+      <h2><span class="tag">QATAR 2022</span> The tactical deep dive</h2>
+      <p class="desc">64 matches, 88 metrics each: possession, attempts, passing, pressing, channels and discipline. Aggregated per team below.</p>
+      <div class="table-scroll"><table id="table-2022">
+        <thead><tr><th>Team</th><th class="num">P</th><th class="num">W</th><th class="num">D</th><th class="num">L</th><th class="num">GF</th><th class="num">GA</th><th class="num">Possession</th><th class="num">Attempts</th><th class="num">On target</th><th class="num">Passes</th><th class="num">Fouls</th><th class="num">Yellows</th></tr></thead>
+        <tbody></tbody>
+      </table></div>
+      <p class="desc" style="margin-top:18px">Every match scoreline — click a row for a full stat breakdown:</p>
+      <div class="table-scroll" style="max-height:400px"><table id="table-2022m">
+        <thead><tr><th>Stage</th><th>Home</th><th class="num">Goals</th><th class="num">Poss.</th><th>Away</th><th class="num">Goals</th><th class="num">Poss.</th><th class="num">Attempts</th></tr></thead>
+        <tbody></tbody>
+      </table></div>
+    </section>
+  </div>
 
-  <section id="sec-2018">
-    <h2><span class="tag">2018 PREVIEW</span> Russia 2018 team profiles</h2>
-    <p class="desc">The pre-tournament dataset: FIFA ranking, previous appearances, titles and finals reached for all 32 qualified teams.</p>
-    <div class="table-scroll"><table id="table-2018">
-      <thead><tr><th>Team</th><th>Group</th><th class="num">FIFA rank</th><th class="num">Appearances</th><th class="num">Titles</th><th class="num">Finals</th><th class="num">Semifinals</th></tr></thead>
-      <tbody></tbody>
-    </table></div>
-  </section>
-
-  <section id="sec-2022">
-    <h2><span class="tag">QATAR 2022</span> The tactical deep dive</h2>
-    <p class="desc">64 matches, 88 metrics each: possession, attempts, passing, pressing, channels and discipline. Aggregated per team below.</p>
-    <div class="table-scroll"><table id="table-2022">
-      <thead><tr><th>Team</th><th class="num">P</th><th class="num">W</th><th class="num">D</th><th class="num">L</th><th class="num">GF</th><th class="num">GA</th><th class="num">Possession</th><th class="num">Attempts</th><th class="num">On target</th><th class="num">Passes</th><th class="num">Fouls</th><th class="num">Yellows</th></tr></thead>
-      <tbody></tbody>
-    </table></div>
-    <p class="desc" style="margin-top:18px">Notable group-stage results and every match scoreline:</p>
-    <div class="table-scroll" style="max-height:360px"><table id="table-2022m">
-      <thead><tr><th>Stage</th><th>Home</th><th class="num">Goals</th><th class="num">Poss.</th><th>Away</th><th class="num">Goals</th><th class="num">Poss.</th><th class="num">Attempts</th></tr></thead>
-      <tbody></tbody>
-    </table></div>
-  </section>
-
-  <section id="sec-2026-groups">
-    <h2><span class="tag">USA · CANADA · MEXICO 2026</span> Twelve groups of four</h2>
-    <p class="desc">48 teams — a first in World Cup history. Playoff qualifiers are still to be decided and are marked as placeholders.</p>
-    <div class="group-grid" id="group-cards"></div>
-  </section>
-
-  <section id="sec-2026-schedule">
-    <h2><span class="tag">2026</span> The full 104-match schedule</h2>
-    <p class="desc">From the opener in Mexico City on 11 June to the final at MetLife Stadium on 19 July 2026.</p>
-    <div class="controls" id="stage-filter"></div>
-    <div class="table-scroll"><table id="table-2026">
-      <thead><tr><th class="num">#</th><th>Stage</th><th>Date</th><th>Home</th><th class="num">vs</th><th>Away</th><th>Venue</th><th>City</th></tr></thead>
-      <tbody></tbody>
-    </table></div>
-    <p class="bracket-note">Knockout fixtures show slot labels (e.g. <code>1C vs 2F</code>) until qualifiers are known.</p>
-  </section>
-
-  <section id="sec-2026-cities">
-    <h2><span class="tag">2026</span> Sixteen host cities</h2>
-    <p class="desc">Eleven venues in the USA, two in Canada and three in Mexico.</p>
-    <div class="city-cards" id="city-cards"></div>
-  </section>
+  <div class="panel" id="panel-y2026" hidden role="tabpanel" aria-labelledby="tab-y2026">
+    <div class="chips" id="chips-y2026"></div>
+    <section id="sec-2026-groups" data-era="y2026">
+      <h2><span class="tag">USA · CANADA · MEXICO 2026</span> Twelve groups of four</h2>
+      <p class="desc">48 teams — a first in World Cup history. Playoff qualifiers are still to be decided and are marked as placeholders.</p>
+      <div class="group-grid" id="group-cards"></div>
+    </section>
+    <section id="sec-2026-schedule" data-era="y2026">
+      <h2><span class="tag">2026</span> The full 104-match schedule</h2>
+      <p class="desc">From the opener in Mexico City on 11 June to the final at MetLife Stadium on 19 July 2026.</p>
+      <div class="controls" id="stage-filter"></div>
+      <div class="table-scroll"><table id="table-2026">
+        <thead><tr><th class="num">#</th><th>Stage</th><th>Date</th><th>Home</th><th class="num">vs</th><th>Away</th><th>Venue</th><th>City</th></tr></thead>
+        <tbody></tbody>
+      </table></div>
+      <p class="bracket-note">Knockout fixtures show slot labels (e.g. <code>1C vs 2F</code>) until qualifiers are known.</p>
+    </section>
+    <section id="sec-2026-cities" data-era="y2026">
+      <h2><span class="tag">2026</span> Sixteen host cities</h2>
+      <p class="desc">Eleven venues in the USA, two in Canada and three in Mexico.</p>
+      <div class="city-cards" id="city-cards"></div>
+    </section>
+  </div>
 
   <footer class="foot">
     Built from the <code>WC_1930-2014.csv</code>, <code>WC_2018.csv</code>, <code>WC_2022.csv</code> and
     <code>WC_2026/</code> datasets. Data bundle generated by <code>build.py</code> — no external dependencies.
   </footer>
 </main>
+
+<dialog id="match-modal" aria-labelledby="mm-title">
+  <div class="mm-head">
+    <button class="mm-close" aria-label="Close">&times;</button>
+    <h3 id="mm-title"></h3>
+    <div class="sub" id="mm-sub"></div>
+  </div>
+  <div class="mm-body" id="mm-body"></div>
+</dialog>
 
 <button class="btn" id="to-top" aria-label="Back to top">↑ Top</button>
 
@@ -231,11 +276,143 @@
 const D = window.WC_DATA;
 const $ = (id) => document.getElementById(id);
 
-/* ---------- helpers ---------- */
 const fmt = (n) => (n == null ? "—" : Number(n).toLocaleString("en-US"));
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) =>
   ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
+/* ================================================================
+   FLAGS
+   ================================================================ */
+const FLAGS = {
+  "Algeria":"🇩🇿","Argentina":"🇦🇷","Australia":"🇦🇺","Austria":"🇦🇹","Belgium":"🇧🇪","Bolivia":"🇧🇴",
+  "Bosnia and Herzegovina":"🇧🇦","Brazil":"🇧🇷","Bulgaria":"🇧🇬","Cameroon":"🇨🇲","Canada":"🇨🇦",
+  "Chile":"🇨🇱","China PR":"🇨🇳","Colombia":"🇨🇴","Costa Rica":"🇨🇷","Croatia":"🇭🇷","Cuba":"🇨🇺",
+  "Côte d'Ivoire":"🇨🇮","Curaçao":"🇨🇼","Cabo Verde":"🇨🇻","Czechoslovakia":"","Denmark":"🇩🇰",
+  "Dutch East Indies":"","Ecuador":"🇪🇨","Egypt":"🇪🇬","El Salvador":"🇸🇻","England":"🏴󠁧󠁢󠁥󠁮󠁧󠁿",
+  "France":"🇫🇷","German DR":"","Germany":"🇩🇪","Germany FR":"🇩🇪","Ghana":"🇬🇭","Greece":"🇬🇷",
+  "Haiti":"🇭🇹","Honduras":"🇭🇳","Hungary":"🇭🇺","Iceland":"🇮🇸","Iran":"🇮🇷","IR Iran":"🇮🇷",
+  "Iraq":"🇮🇶","Israel":"🇮🇱","Italy":"🇮🇹","Jamaica":"🇯🇲","Japan":"🇯🇵","Jordan":"🇯🇴",
+  "Korea DPR":"🇰🇵","Korea Republic":"🇰🇷","Korea":"🇰🇷","Kuwait":"🇰🇼","Mexico":"🇲🇽",
+  "Morocco":"🇲🇦","Netherlands":"🇳🇱","New Zealand":"🇳🇿","Nigeria":"🇳🇬",
+  "Northern Ireland":"🏴󠁧󠁢󠁮󠁩󠁲󠁿","Norway":"🇳🇴","Panama":"🇵🇦","Paraguay":"🇵🇾","Peru":"🇵🇪",
+  "Poland":"🇵🇱","Portugal":"🇵🇹","Qatar":"🇶🇦","Republic of Ireland":"🇮🇪","Romania":"🇷🇴",
+  "Russia":"🇷🇺","Saudi Arabia":"🇸🇦","Scotland":"🏴󠁧󠁢󠁳󠁣󠁴󠁿","Senegal":"🇸🇳","Serbia":"🇷🇸",
+  "Serbia and Montenegro":"","Slovakia":"🇸🇰","Slovenia":"🇸🇮","South Africa":"🇿🇦",
+  "South Korea":"🇰🇷","Soviet Union":"","Spain":"🇪🇸","Sweden":"🇸🇪","Switzerland":"🇨🇭",
+  "Trinidad and Tobago":"🇹🇹","Tunisia":"🇹🇳","Turkey":"🇹🇷","Ukraine":"🇺🇦",
+  "United Arab Emirates":"🇦🇪","Uruguay":"🇺🇾","USA":"🇺🇸","United States":"🇺🇸",
+  "Wales":"🏴󠁧󠁢󠁷󠁬󠁳󠁿","Yugoslavia":"","Zaire":"","Uzbekistan":"🇺🇿"
+};
+const flag = (name) => FLAGS[name] ?? "";
+function teamCell(name, { link = true } = {}) {
+  if (!name) return "—";
+  const f = flag(name);
+  const fl = f ? `<span class="flag">${f}</span>` : "";
+  const txt = esc(name);
+  return link ? `<span class="team-link" data-team="${txt}">${fl}${txt}</span>` : `${fl}${txt}`;
+}
+function teamPlain(name) { if (!name) return "—"; const f = flag(name); const fl = f ? `<span class="flag">${f}</span>` : ""; return `<span class="team-link" data-team="${esc(name)}">${fl}${esc(name)}</span>`; }
+function flagPlain(name) { return name ? `${esc(name)}` : "—"; }
+
+/* ================================================================
+   TAB SYSTEM
+   ================================================================ */
+const TABS = [
+  ["overview", "Overview", null],
+  ["history", "History 1930–2014", "history"],
+  ["y2018", "Russia 2018", "y2018"],
+  ["y2022", "Qatar 2022", "y2022"],
+  ["y2026", "2026 USA·CAN·MEX", "y2026"],
+];
+const PANEL_SECTIONS = {
+  overview: ["sec-overview"],
+  history: ["sec-historical", "sec-nations", "sec-finals", "sec-matches"],
+  y2018: ["sec-2018"],
+  y2022: ["sec-2022"],
+  y2026: ["sec-2026-groups", "sec-2026-schedule", "sec-2026-cities"],
+};
+let curTab = "overview";
+
+$("tabs").innerHTML = TABS.map(([id, label, era]) =>
+  `<button role="tab" id="tab-${id}" aria-controls="panel-${id}" aria-selected="false" tabindex="-1"${era ? ` data-era="${era}"` : ""}>${label}</button>`
+).join("");
+const tabBtns = [...$("tabs").querySelectorAll("button")];
+const tabBtnMap = Object.fromEntries(tabBtns.map((b) => [b.id.slice(4), b]));
+
+function activateTab(id, { scrollTo } = {}) {
+  if (!tabBtnMap[id]) return;
+  const prev = curTab;
+  curTab = id;
+  tabBtns.forEach((b) => {
+    const on = b.id === `tab-${id}`;
+    b.setAttribute("aria-selected", String(on));
+    b.setAttribute("tabindex", on ? "0" : "-1");
+  });
+  Object.keys(PANEL_SECTIONS).forEach((tid) => {
+    const p = $(`panel-${tid}`);
+    p.hidden = tid !== id;
+  });
+  if (scrollTo) {
+    requestAnimationFrame(() => {
+      const el = $(scrollTo);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  } else {
+    window.scrollTo({ top: 0 });
+  }
+  updateChips();
+  if (prev !== id) history.replaceState(null, "", `#tab-${id}`);
+}
+tabBtns.forEach((b) => b.addEventListener("click", () => activateTab(b.id.slice(4))));
+
+$("tabs").addEventListener("keydown", (e) => {
+  const idx = TABS.findIndex((t) => t[0] === curTab);
+  let n = null;
+  if (e.key === "ArrowRight") n = (idx + 1) % TABS.length;
+  else if (e.key === "ArrowLeft") n = (idx - 1 + TABS.length) % TABS.length;
+  else if (e.key === "Home") n = 0;
+  else if (e.key === "End") n = TABS.length - 1;
+  if (n != null) { e.preventDefault(); activateTab(TABS[n][0]); $(TABS[n][0]).focus(); }
+});
+
+/* ================================================================
+   CHIPS & SCROLL-SPY
+   ================================================================ */
+const chipLabel = { "sec-historical": "Goals & attendance", "sec-nations": "Top nations & stadiums", "sec-finals": "Finals", "sec-matches": "Match archive", "sec-2018": "Team profiles", "sec-2022": "Stats & scores", "sec-2026-groups": "Groups", "sec-2026-schedule": "Schedule", "sec-2026-cities": "Host cities" };
+Object.entries(PANEL_SECTIONS).forEach(([tab, secs]) => {
+  if (tab === "overview") return;
+  const el = $(`chips-${tab}`);
+  if (el) el.innerHTML = secs.map((s) => `<button class="chip" data-target="${s}" role="link">${chipLabel[s] || s}</button>`).join("");
+});
+
+function updateChips() {
+  document.querySelectorAll(".chips").forEach((c) => c.style.display = c.id === `chips-${curTab}` ? "" : "none");
+}
+document.querySelectorAll(".chip").forEach((c) => c.addEventListener("click", () => {
+  const el = $(c.dataset.target);
+  if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+}));
+
+function updateSpy() {
+  const secs = PANEL_SECTIONS[curTab] || [];
+  const pos = window.scrollY + navEl.offsetHeight + 100;
+  let cur = secs[0];
+  for (const id of secs) { const s = $(id); if (s && s.offsetTop <= pos) cur = id; }
+  $(`chips-${curTab}`)?.querySelectorAll(".chip").forEach((c) => c.classList.toggle("on", c.dataset.target === cur));
+}
+window.addEventListener("scroll", updateSpy, { passive: true });
+
+/* ================================================================
+   NAV HEIGHT SYNC
+   ================================================================ */
+const navEl = document.querySelector("nav");
+function syncNavH() { document.documentElement.style.setProperty("--nav-h", navEl.offsetHeight + "px"); }
+syncNavH();
+window.addEventListener("resize", syncNavH);
+
+/* ================================================================
+   OVERVIEW
+   ================================================================ */
 function barChart(el, items, { value = (d) => d.v, label = (d) => d.l, gold = () => false } = {}) {
   const max = Math.max(...items.map(value), 1);
   el.innerHTML = items.map((d, i) =>
@@ -246,43 +423,6 @@ function barChart(el, items, { value = (d) => d.v, label = (d) => d.l, gold = ()
      </div>`).join("");
 }
 
-/* ---------- nav ---------- */
-const SECTIONS = [
-  ["sec-overview", "Overview"],
-  ["sec-historical", "Goals & attendance"],
-  ["sec-nations", "Top nations & stadiums"],
-  ["sec-finals", "Finals"],
-  ["sec-matches", "Match archive"],
-  ["sec-2018", "2018 preview"],
-  ["sec-2022", "2022 deep dive"],
-  ["sec-2026-groups", "2026 groups"],
-  ["sec-2026-schedule", "2026 schedule"],
-  ["sec-2026-cities", "Host cities"],
-];
-$("nav").innerHTML = SECTIONS.map(([id, name]) => `<a href="#${id}">${name}</a>`).join("");
-
-/* ---------- nav height sync & scroll-spy ---------- */
-const navEl = document.querySelector("nav");
-function syncNavH() {
-  document.documentElement.style.setProperty("--nav-h", navEl.offsetHeight + "px");
-}
-syncNavH();
-window.addEventListener("resize", () => { syncNavH(); updateActiveNav(); });
-
-const navLinks = new Map([...$("nav").querySelectorAll("a")].map((a) => [a.getAttribute("href").slice(1), a]));
-function updateActiveNav() {
-  const pos = window.scrollY + navEl.offsetHeight + 80;
-  let cur = SECTIONS[0][0];
-  for (const [id] of SECTIONS) {
-    const s = $(id);
-    if (s && s.offsetTop <= pos) cur = id;
-  }
-  navLinks.forEach((a, id) => a.classList.toggle("active", id === cur));
-}
-window.addEventListener("scroll", updateActiveNav, { passive: true });
-updateActiveNav();
-
-/* ---------- overview ---------- */
 const O = D.overview;
 $("stat-cards").innerHTML = [
   [fmt(O.tournaments_1930_2014), "Tournaments (1930–2014)"],
@@ -295,92 +435,169 @@ $("stat-cards").innerHTML = [
   [fmt(O.matches_2026), "Matches in 2026"],
 ].map(([n, l]) => `<div class="card stat-card"><div class="num">${n}</div><div class="lbl">${l}</div></div>`).join("");
 
-/* ---------- historical charts ---------- */
+/* ================================================================
+   HISTORICAL CHARTS
+   ================================================================ */
 barChart($("chart-gpg"), D.yearly.map((y) => ({ l: y.year, v: y.gpg })));
 barChart($("chart-att"), D.yearly.map((y) => ({ l: y.year, v: y.avg_att })));
 barChart($("chart-nations"), D.top_nations.map((t) => ({ l: t.team, v: t.goals })), { gold: (d, i) => i === 0 });
 barChart($("chart-stadiums"), D.top_stadiums.map((s) => ({ l: s.stadium, v: s.avg_att })));
 
-/* ---------- finals ---------- */
+/* ================================================================
+   FINALS (Bước 8: click row → modal)
+   ================================================================ */
 $("table-finals").querySelector("tbody").innerHTML = D.finals.map((f) => {
   const champ = f.champion;
-  const hl = (name) => (champ === name ? '<span class="highlight">' + esc(name) + "</span>" : esc(name));
-  return `<tr><td>${f.year}</td>
+  const hl = (name) => (champ === name ? `<span class="highlight">${teamCell(name, { link: false })}</span>` : teamCell(name));
+  return `<tr tabindex="0" role="button" data-year="${f.year}" data-fm="1">
+    <td>${f.year}</td>
     <td>${hl(f.home)}</td>
     <td class="num"><b>${f.home_goals} – ${f.away_goals}</b></td>
     <td>${hl(f.away)}</td>
     <td class="num">${fmt(f.att)}</td>
     <td>${esc(f.win_conditions || "—")}</td></tr>`;
 }).join("");
+$("table-finals").querySelector("tbody").addEventListener("click", (e) => {
+  const tl = e.target.closest(".team-link");
+  if (tl) { e.stopPropagation(); goToTeam(tl.dataset.team); return; }
+  const tr = e.target.closest("tr[data-fm]");
+  if (tr) openHistMatchByYear(+tr.dataset.year);
+});
+$("table-finals").querySelector("tbody").addEventListener("keydown", (e) => {
+  if (e.key === "Enter" || e.key === " ") { const tr = e.target.closest("tr[data-fm]"); if (tr) { e.preventDefault(); openHistMatchByYear(+tr.dataset.year); } }
+});
 
-/* ---------- match archive ---------- */
-const matchYearSel = $("match-year");
-const matchStageSel = $("match-stage");
+function openHistMatchByYear(year) {
+  const m = D.matches_hist.find((r) => r.year === year && r.stage === "Final");
+  if (m) openHistMatch(m);
+}
+
+/* ================================================================
+   MATCH ARCHIVE + PAGINATION
+   ================================================================ */
+const matchYearSel = $("match-year"), matchStageSel = $("match-stage");
 const years = [...new Set(D.matches_hist.map((m) => m.year))].sort((a, b) => a - b);
 const stages = [...new Set(D.matches_hist.map((m) => m.stage))].sort();
 matchYearSel.innerHTML = `<option value="">All years</option>` + years.map((y) => `<option>${y}</option>`).join("");
 matchStageSel.innerHTML = `<option value="">All stages</option>` + stages.map((s) => `<option>${esc(s)}</option>`).join("");
 
-const MAX_ROWS = 400;
-function renderMatches() {
+const PAGE_SIZE = 20;
+let archivePage = 1, curFiltered = [];
+
+function getFiltered() {
   const q = $("match-search").value.trim().toLowerCase();
   const y = matchYearSel.value, s = matchStageSel.value;
-  const filtered = D.matches_hist.filter((m) =>
-    (!y || m.year === +y) &&
-    (!s || m.stage === s) &&
+  return D.matches_hist.filter((m) =>
+    (!y || m.year === +y) && (!s || m.stage === s) &&
     (!q || [m.home, m.away, m.city, m.stadium, m.stage].some((v) => String(v ?? "").toLowerCase().includes(q)))
   );
-  const rows = filtered.slice(0, MAX_ROWS);
-  $("table-matches").querySelector("tbody").innerHTML = rows.map((m) =>
-    `<tr><td>${m.year}</td><td>${esc(m.stage)}</td><td>${esc(m.home)}</td>
-     <td class="num"><b>${m.hg} – ${m.ag}</b></td><td>${esc(m.away)}</td>
-     <td class="num">${fmt(m.att)}</td><td>${esc(m.city)}</td><td>${esc(m.stadium)}</td></tr>`).join("")
-    || `<tr><td colspan="8" style="text-align:center;color:var(--muted)">No matches found — try different keywords or filters.</td></tr>`;
-  $("match-count").textContent = filtered.length === 0
-    ? ""
-    : (filtered.length > rows.length
-        ? `Showing ${rows.length} of ${filtered.length} matches — refine your filters to narrow the list.`
-        : `Showing ${filtered.length} of ${D.matches_hist.length} matches.`);
 }
-$("match-search").addEventListener("input", renderMatches);
-matchYearSel.addEventListener("change", renderMatches);
-matchStageSel.addEventListener("change", renderMatches);
-renderMatches();
 
-/* ---------- 2018 preview ---------- */
+function renderMatches() {
+  curFiltered = getFiltered();
+  const total = curFiltered.length;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  if (archivePage > totalPages) archivePage = totalPages;
+  const start = (archivePage - 1) * PAGE_SIZE;
+  const rows = curFiltered.slice(start, start + PAGE_SIZE);
+  $("table-matches").querySelector("tbody").innerHTML = rows.map((m, i) =>
+    `<tr tabindex="0" role="button" data-ai="${start + i}">
+      <td>${m.year}</td><td>${esc(m.stage)}</td><td>${teamCell(m.home)}</td>
+      <td class="num"><b>${m.hg} – ${m.ag}</b></td><td>${teamCell(m.away)}</td>
+      <td class="num">${fmt(m.att)}</td><td>${esc(m.city)}</td><td>${esc(m.stadium)}</td></tr>`
+  ).join("") || `<tr><td colspan="8" style="text-align:center;color:var(--muted)">No matches found — try different keywords or filters.</td></tr>`;
+  const end = Math.min(start + PAGE_SIZE, total);
+  $("match-count").textContent = total ? `Showing ${start + 1}–${end} of ${total} matches · Page ${archivePage} of ${totalPages}` : "";
+  renderPager(totalPages);
+}
+
+function renderPager(total) {
+  const el = $("match-pager");
+  if (total <= 1) { el.innerHTML = ""; return; }
+  const btn = (page, label, disabled = false, cur = false) =>
+    `<button data-page="${page}"${disabled ? " disabled" : ""}${cur ? ' aria-current="page"' : ""}>${label}</button>`;
+  let html = btn(archivePage - 1, "‹ Prev", archivePage <= 1);
+  const nums = pageWindow(archivePage, total);
+  for (const n of nums) { if (n === 1 && nums[0] !== 1) html += `<span class="dots">…</span>`; html += btn(n, n, false, n === archivePage); if (n === total && nums[nums.length - 1] !== total) html += `<span class="dots">…</span>`; }
+  html += btn(archivePage + 1, "Next ›", archivePage >= total);
+  el.innerHTML = html;
+}
+function pageWindow(cur, total) { if (total <= 7) return [...Array(total)].map((_, i) => i + 1); const s = Math.max(1, Math.min(cur - 3, total - 6)); return Array.from({ length: 7 }, (_, i) => s + i); }
+
+$("match-pager").addEventListener("click", (e) => { const b = e.target.closest("button[data-page]"); if (b && !b.disabled) { archivePage = +b.dataset.page; renderMatches(); $("table-matches").closest(".table-scroll").scrollTo({ top: 0 }); } });
+
+function resetArchive() { archivePage = 1; renderMatches(); }
+$("match-search").addEventListener("input", resetArchive);
+matchYearSel.addEventListener("change", resetArchive);
+matchStageSel.addEventListener("change", resetArchive);
+
+$("table-matches").querySelector("tbody").addEventListener("click", (e) => {
+  const tl = e.target.closest(".team-link");
+  if (tl) { e.stopPropagation(); goToTeam(tl.dataset.team); return; }
+  const tr = e.target.closest("tr[data-ai]");
+  if (tr) openHistMatch(curFiltered[+tr.dataset.ai]);
+});
+$("table-matches").querySelector("tbody").addEventListener("keydown", (e) => {
+  if (e.key === "Enter" || e.key === " ") { const tr = e.target.closest("tr[data-ai]"); if (tr) { e.preventDefault(); openHistMatch(curFiltered[+tr.dataset.ai]); } }
+});
+
+/* ================================================================
+   2018 PREVIEW
+   ================================================================ */
 $("table-2018").querySelector("tbody").innerHTML = D.preview_2018.map((t) =>
-  `<tr><td><b>${esc(t.team)}</b></td><td>${esc(t.group)}</td>
+  `<tr><td>${teamCell(t.team)}</td><td>${esc(t.group)}</td>
    <td class="num">${fmt(t.fifa_rank)}</td><td class="num">${fmt(t.appearances)}</td>
    <td class="num">${fmt(t.titles)}</td><td class="num">${fmt(t.finals)}</td>
-   <td class="num">${fmt(t.semis)}</td></tr>`).join("");
+   <td class="num">${fmt(t.semis)}</td></tr>`
+).join("");
+$("table-2018").querySelector("tbody").addEventListener("click", (e) => {
+  const tl = e.target.closest(".team-link"); if (tl) { e.stopPropagation(); goToTeam(tl.dataset.team); }
+});
 
-/* ---------- 2022 ---------- */
+/* ================================================================
+   2022
+   ================================================================ */
 $("table-2022").querySelector("tbody").innerHTML = D.teams_2022.map((t) =>
-  `<tr><td><b>${esc(t.team)}</b></td><td class="num">${t.p}</td>
+  `<tr><td>${teamCell(t.team)}</td><td class="num">${t.p}</td>
    <td class="num">${t.w}</td><td class="num">${t.d}</td><td class="num">${t.l}</td>
    <td class="num">${t.gf}</td><td class="num">${t.ga}</td>
    <td class="num">${t.pos}%</td><td class="num">${t.att}</td><td class="num">${t.ont}</td>
-   <td class="num">${fmt(t.passc)}</td><td class="num">${t.fouls}</td><td class="num">${t.yellow}</td></tr>`).join("");
+   <td class="num">${fmt(t.passc)}</td><td class="num">${t.fouls}</td><td class="num">${t.yellow}</td></tr>`
+).join("");
+$("table-2022").querySelector("tbody").addEventListener("click", (e) => {
+  const tl = e.target.closest(".team-link"); if (tl) { e.stopPropagation(); goToTeam(tl.dataset.team); }
+});
 
-$("table-2022m").querySelector("tbody").innerHTML = D.matches_2022.map((m) =>
-  `<tr><td>${esc(m.cat)}</td><td>${esc(m.t1)}</td>
-   <td class="num"><b>${m.g1} – ${m.g2}</b></td><td class="num">${m.pos1}%</td>
-   <td>${esc(m.t2)}</td><td class="num">${m.g2}</td>
-   <td class="num">${m.pos2}%</td><td class="num">${m.att1} / ${m.att2}</td></tr>`).join("");
+const matchMap22 = new Map(D.matches_2022.map((m, i) => [i, m]));
+$("table-2022m").querySelector("tbody").innerHTML = D.matches_2022.map((m, i) =>
+  `<tr tabindex="0" role="button" data-mi="${i}">
+    <td>${esc(m.cat)}</td><td>${teamCell(m.t1)}</td>
+    <td class="num"><b>${m.g1} – ${m.g2}</b></td><td class="num">${m.pos1}%</td>
+    <td>${teamCell(m.t2)}</td><td class="num">${m.g2}</td>
+    <td class="num">${m.pos2}%</td><td class="num">${m.att1} / ${m.att2}</td></tr>`
+).join("");
+$("table-2022m").querySelector("tbody").addEventListener("click", (e) => {
+  const tl = e.target.closest(".team-link");
+  if (tl) { e.stopPropagation(); goToTeam(tl.dataset.team); return; }
+  const tr = e.target.closest("tr[data-mi]");
+  if (tr) openMatch2022(D.matches_2022[+tr.dataset.mi]);
+});
+$("table-2022m").querySelector("tbody").addEventListener("keydown", (e) => {
+  if (e.key === "Enter" || e.key === " ") { const tr = e.target.closest("tr[data-mi]"); if (tr) { e.preventDefault(); openMatch2022(D.matches_2022[+tr.dataset.mi]); } }
+});
 
-/* ---------- 2026 groups ---------- */
+/* ================================================================
+   2026 GROUPS / SCHEDULE / CITIES
+   ================================================================ */
 $("group-cards").innerHTML = D.groups_2026.map((g) =>
   `<div class="card group-card"><h3>Group ${g.letter}</h3><ul>${g.teams.map((t) =>
-    `<li>${esc(t.name)}<span class="code">${esc(t.code)}</span>${t.placeholder ? ' <span class="pill ph">TBD</span>' : ""}</li>`
-  ).join("")}</ul></div>`).join("");
+    `<li>${teamPlain(t.name)}<span class="code">${esc(t.code)}</span>${t.placeholder ? ' <span class="pill ph">TBD</span>' : ""}</li>`
+  ).join("")}</ul></div>`
+).join("");
+$("group-cards").addEventListener("click", (e) => { const tl = e.target.closest(".team-link"); if (tl) { e.stopPropagation(); goToTeam(tl.dataset.team); } });
 
-/* ---------- 2026 schedule ---------- */
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-function fmtDate(iso) {
-  const [d, t] = iso.split(" ");
-  const [yy, mm, dd] = d.split("-");
-  return `${+dd} ${MONTHS[+mm - 1]} ${yy} · ${t}`;
-}
+function fmtDate(iso) { const [d, t] = iso.split(" "); const [yy, mm, dd] = d.split("-"); return `${+dd} ${MONTHS[+mm - 1]} ${yy} · ${t}`; }
 
 const stageBtns = $("stage-filter");
 const stageList = [...new Set(D.schedule_2026.map((m) => m.stage))];
@@ -391,19 +608,15 @@ stageBtns.addEventListener("click", (e) => {
   const b = e.target.closest("button");
   if (!b) return;
   curStage = b.dataset.stage;
-  stageBtns.querySelectorAll("button").forEach((x) => {
-    const on = x === b;
-    x.classList.toggle("on", on);
-    x.setAttribute("aria-pressed", String(on));
-  });
+  stageBtns.querySelectorAll("button").forEach((x) => { const on = x === b; x.classList.toggle("on", on); x.setAttribute("aria-pressed", String(on)); });
   render2026();
 });
 
 function render2026() {
   const rows = D.schedule_2026.filter((m) => !curStage || m.stage === curStage);
   $("table-2026").querySelector("tbody").innerHTML = rows.map((m) => {
-    const home = m.home ? `${esc(m.home)} <span class="pill ph" style="font-size:10px">${esc(m.home_code)}</span>${m.home_ph ? " <span class=\"pill ph\">TBD</span>" : ""}` : `<span class="pill ph">${esc(m.label.split(" vs ")[0])}</span>`;
-    const away = m.away ? `${esc(m.away)} <span class="pill ph" style="font-size:10px">${esc(m.away_code)}</span>${m.away_ph ? " <span class=\"pill ph\">TBD</span>" : ""}` : `<span class="pill ph">${esc(m.label.split(" vs ")[1])}</span>`;
+    const home = m.home ? `${teamCell(m.home)} <span class="pill ph" style="font-size:10px">${esc(m.home_code)}</span>${m.home_ph ? ' <span class="pill ph">TBD</span>' : ""}` : `<span class="pill ph">${esc(m.label.split(" vs ")[0])}</span>`;
+    const away = m.away ? `${teamCell(m.away)} <span class="pill ph" style="font-size:10px">${esc(m.away_code)}</span>${m.away_ph ? ' <span class="pill ph">TBD</span>' : ""}` : `<span class="pill ph">${esc(m.label.split(" vs ")[1])}</span>`;
     return `<tr><td class="num">${m.num}</td>
       <td><span class="pill stage">${esc(m.stage)}</span></td>
       <td title="${esc(m.iso)} ${esc(m.tz)}">${esc(fmtDate(m.iso))} <span class="pill ph">${esc(m.tz)}</span></td>
@@ -412,23 +625,129 @@ function render2026() {
   }).join("");
 }
 render2026();
+$("table-2026").querySelector("tbody").addEventListener("click", (e) => {
+  const tl = e.target.closest(".team-link"); if (tl) { e.stopPropagation(); goToTeam(tl.dataset.team); }
+});
 
-/* ---------- 2026 cities ---------- */
 $("city-cards").innerHTML = D.cities_2026.map((c) =>
   `<div class="card city-card"><div class="venue">${esc(c.venue)}</div>
    <div class="meta">${esc(c.city)} · ${esc(c.country)} <span class="pill ph">${esc(c.code)}</span></div>
    <div class="meta">${esc(c.region)} cluster</div>
-   <div class="meta"><span class="match-count">${c.matches}</span> matches</div></div>`).join("");
+   <div class="meta"><span class="match-count">${c.matches}</span> matches</div></div>`
+).join("");
 
-/* ---------- back to top ---------- */
+/* ================================================================
+   MODAL — Hist match
+   ================================================================ */
+const dialog = $("match-modal");
+dialog.querySelector(".mm-close").addEventListener("click", () => dialog.close());
+dialog.addEventListener("click", (e) => { if (e.target === dialog) dialog.close(); });
+dialog.addEventListener("close", () => { if (dialog._lastFocus) dialog._lastFocus.focus(); });
+
+function openHistMatch(m) {
+  dialog._lastFocus = document.activeElement;
+  $("mm-title").innerHTML = `${teamCell(m.home)} ${m.hg} – ${m.ag} ${teamCell(m.away)}`;
+  $("mm-sub").textContent = `${m.year} · ${m.stage}`;
+  let html = `<div class="mm-meta">`;
+  if (m.datetime) html += `<div class="lbl">Date / Time</div><div class="val">${esc(m.datetime)}</div>`;
+  if (m.stadium) html += `<div class="lbl">Venue</div><div class="val">${esc(m.stadium)}, ${esc(m.city || "")}</div>`;
+  if (m.att != null) html += `<div class="lbl">Attendance</div><div class="val">${fmt(m.att)}</div>`;
+  if (m.ht_h != null || m.ht_a != null) html += `<div class="lbl">Half-time</div><div class="val">${m.ht_h ?? "?"} – ${m.ht_a ?? "?"}</div>`;
+  if (m.referee) html += `<div class="lbl">Referee</div><div class="val">${esc(m.referee)}</div>`;
+  const assists = [m.assist1, m.assist2].filter(Boolean).join(", ");
+  if (assists) html += `<div class="lbl">Assistants</div><div class="val">${esc(assists)}</div>`;
+  if (m.hi || m.ai) html += `<div class="lbl">Initials</div><div class="val">${esc(m.hi || "—")} vs ${esc(m.ai || "—")}</div>`;
+  if (m.matchid) html += `<div class="lbl">Match ID</div><div class="val">${esc(String(m.matchid))}</div>`;
+  if (m.win_conditions) html += `<div class="lbl">Win conditions</div><div class="val">${esc(m.win_conditions)}</div>`;
+  html += `</div>`;
+  $("mm-body").innerHTML = html;
+  if (typeof dialog.showModal === "function") dialog.showModal(); else dialog.show();
+}
+
+/* ================================================================
+   MODAL — 2022 match (Bước 8: grid so sánh)
+   ================================================================ */
+function cmpRow(label, v1, v2) {
+  const w = v1 > v2 ? 1 : v2 > v1 ? 2 : 0;
+  const h = (v, n) => `<div class="v${w === n ? " hi" : ""}">${v}</div>`;
+  return `${h(v1, 1)}<div class="l">${label}</div>${h(v2, 2)}`;
+}
+function openMatch2022(m) {
+  dialog._lastFocus = document.activeElement;
+  $("mm-title").innerHTML = `${teamCell(m.t1)} ${m.g1} – ${m.g2} ${teamCell(m.t2)}`;
+  $("mm-sub").textContent = m.cat + (m.date ? ` · ${m.date} ${m.hour}` : "");
+  let html = `<div class="cmp">`;
+  html += cmpRow("Possession", `${m.pos1}%`, `${m.pos2}%`);
+  html += cmpRow("Total attempts", m.att1, m.att2);
+  html += cmpRow("On target", m.ont1, m.ont2);
+  html += cmpRow("Inside box", m.inb1 ?? 0, m.inb2 ?? 0);
+  html += cmpRow("Outside box", m.outb1 ?? 0, m.outb2 ?? 0);
+  html += cmpRow("Passes", `${m.pass1}/${m.pass_t1 ?? 0}`, `${m.pass2}/${m.pass_t2 ?? 0}`);
+  html += cmpRow("Crosses", `${m.crossc1 ?? 0}/${m.cross1 ?? 0}`, `${m.crossc2 ?? 0}/${m.cross2 ?? 0}`);
+  html += cmpRow("Corners", m.corners1 ?? 0, m.corners2 ?? 0);
+  html += cmpRow("Free kicks", m.fk1 ?? 0, m.fk2 ?? 0);
+  html += cmpRow("Fouls", m.fouls1 ?? 0, m.fouls2 ?? 0);
+  html += cmpRow("Yellow cards", m.yc1 ?? 0, m.yc2 ?? 0);
+  html += cmpRow("Red cards", m.rc1 ?? 0, m.rc2 ?? 0);
+  html += cmpRow("Offsides", m.off1 ?? 0, m.off2 ?? 0);
+  html += cmpRow("Goal preventions", m.gp1 ?? 0, m.gp2 ?? 0);
+  html += cmpRow("Forced turnovers", m.fto1 ?? 0, m.fto2 ?? 0);
+  html += cmpRow("Def. pressures", m.dp1 ?? 0, m.dp2 ?? 0);
+  html += `</div>`;
+  $("mm-body").innerHTML = html;
+  if (typeof dialog.showModal === "function") dialog.showModal(); else dialog.show();
+}
+
+/* ================================================================
+   TEAM NAVIGATION — click any team name → History tab + filter archive
+   ================================================================ */
+function goToTeam(name) {
+  activateTab("history", { scrollTo: "sec-matches" });
+  $("match-search").value = name;
+  matchYearSel.value = "";
+  matchStageSel.value = "";
+  archivePage = 1;
+  renderMatches();
+}
+
+/* ================================================================
+   STICKY COLUMN SCROLL SHADOW
+   ================================================================ */
+document.querySelectorAll(".table-scroll").forEach((sc) => {
+  const upd = () => sc.classList.toggle("scrolled", sc.scrollLeft > 2);
+  sc.addEventListener("scroll", upd, { passive: true });
+  upd();
+});
+
+/* ================================================================
+   BACK TO TOP
+   ================================================================ */
 const toTop = $("to-top");
 const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
-window.addEventListener("scroll", () => {
-  toTop.classList.toggle("show", window.scrollY > 600);
-}, { passive: true });
-toTop.addEventListener("click", () => {
-  window.scrollTo({ top: 0, behavior: reduceMotion.matches ? "auto" : "smooth" });
-});
+window.addEventListener("scroll", () => { toTop.classList.toggle("show", window.scrollY > 600); }, { passive: true });
+toTop.addEventListener("click", () => { window.scrollTo({ top: 0, behavior: reduceMotion.matches ? "auto" : "smooth" }); });
+
+/* ================================================================
+   HASH ROUTING — supports both #tab-* and legacy #sec-*
+   ================================================================ */
+function handleHash() {
+  const h = decodeURIComponent(location.hash.slice(1));
+  if (!h) { activateTab("overview"); return; }
+  if (h.startsWith("tab-")) { activateTab(h.slice(4)); return; }
+  for (const [tab, secs] of Object.entries(PANEL_SECTIONS)) {
+    if (secs.includes(h)) { activateTab(tab, { scrollTo: h }); return; }
+  }
+  activateTab("overview");
+}
+window.addEventListener("hashchange", handleHash);
+
+/* ================================================================
+   INIT
+   ================================================================ */
+if (!location.hash) { activateTab("overview"); } else { handleHash(); }
+renderMatches();
+updateChips();
+updateSpy();
 </script>
 </body>
 </html>

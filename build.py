@@ -18,12 +18,41 @@ ROOT = "."
 SITE = "docs"
 
 # ---------------------------------------------------------------------------
+# Team name hygiene
+# ---------------------------------------------------------------------------
+import re as _re
+
+def clean_team(name):
+    """Strip scraping artifacts and normalize known misspellings."""
+    if pd.isna(name):
+        return None
+    s = str(name).strip()
+    s = _re.sub(r'^rn"?>', "", s)          # 'rn">Bosnia...' artifact
+    s = _re.sub(r'\s+', " ", s).strip()
+    ALIASES = {
+        "Columbia": "Colombia",
+        "Costarica": "Costa Rica",
+        "Porugal": "Portugal",
+        "IRAN": "Iran",
+    }
+    return ALIASES.get(s, s)
+
+def i0(v):
+    return int(v) if pd.notna(v) else 0
+
+def _s(v):
+    s = str(v).strip() if pd.notna(v) else ""
+    return s or None
+
+# ---------------------------------------------------------------------------
 # 1. Historical matches 1930-2014
 # ---------------------------------------------------------------------------
 hist = pd.read_csv(f"{ROOT}/WC_1930-2014.csv")
 hist = hist.dropna(subset=["Year"])
 hist["Year"] = hist["Year"].astype(int)
 hist["Attendance"] = pd.to_numeric(hist["Attendance"], errors="coerce")
+for col in ("Home Team Name", "Away Team Name"):
+    hist[col] = hist[col].map(clean_team)
 
 hist["Home Team Goals"] = pd.to_numeric(hist["Home Team Goals"], errors="coerce").fillna(0).astype(int)
 hist["Away Team Goals"] = pd.to_numeric(hist["Away Team Goals"], errors="coerce").fillna(0).astype(int)
@@ -100,6 +129,16 @@ for _, r in hist.iterrows():
         "att": int(r["Attendance"]) if pd.notna(r["Attendance"]) else None,
         "city": r["City"] if pd.notna(r["City"]) else None,
         "stadium": r["Stadium"] if pd.notna(r["Stadium"]) else None,
+        "datetime": _s(r["Datetime"]),
+        "ht_h": i0(r["Half-time Home Goals"]) if pd.notna(r.get("Half-time Home Goals")) else None,
+        "ht_a": i0(r["Half-time Away Goals"]) if pd.notna(r.get("Half-time Away Goals")) else None,
+        "referee": _s(r.get("Referee")),
+        "assist1": _s(r.get("Assistant 1")),
+        "assist2": _s(r.get("Assistant 2")),
+        "hi": _s(r.get("Home Team Initials")),
+        "ai": _s(r.get("Away Team Initials")),
+        "matchid": int(r["MatchID"]) if pd.notna(r["MatchID"]) else None,
+        "win_conditions": _s(r.get("Win conditions")),
     })
 
 # ---------------------------------------------------------------------------
@@ -117,7 +156,7 @@ for _, r in pre18.iterrows():
         except (ValueError, TypeError):
             return None
     preview_2018.append({
-        "team": r["Team"],
+        "team": clean_team(r["Team"]),
         "group": r["Group"],
         "appearances": num(r.get("Previous  appearances")),
         "titles": num(r.get("Previous  titles")),
@@ -135,8 +174,8 @@ numeric_cols = [c for c in d22.columns if c not in ("team1", "team2", "date", "h
 for c in numeric_cols:
     d22[c] = pd.to_numeric(d22[c], errors="coerce")
 
-def i0(v):
-    return int(v) if pd.notna(v) else 0
+d22["team1"] = d22["team1"].map(clean_team)
+d22["team2"] = d22["team2"].map(clean_team)
 
 matches_2022 = []
 for _, r in d22.iterrows():
@@ -148,6 +187,27 @@ for _, r in d22.iterrows():
         "ont1": i0(r["on target attempts team1"]), "ont2": i0(r["on target attempts team2"]),
         "pass1": i0(r["passes completed team1"]), "pass2": i0(r["passes completed team2"]),
         "cat": r["category"],
+        # extended detail for the match modal
+        "date": _s(r.get("date")), "hour": _s(r.get("hour")),
+        "off1": i0(r["offsides team1"]), "off2": i0(r["offsides team2"]),
+        "def1": i0(r["conceded team1"]), "def2": i0(r["conceded team2"]),
+        "inb1": i0(r["attempts inside the penalty area team1"]),
+        "inb2": i0(r["attempts inside the penalty area  team2"]),
+        "outb1": i0(r["attempts outside the penalty area  team1"]),
+        "outb2": i0(r["attempts outside the penalty area  team2"]),
+        "pass_t1": i0(r["passes team1"]), "pass_t2": i0(r["passes team2"]),
+        "cross1": i0(r["crosses team1"]), "cross2": i0(r["crosses team2"]),
+        "crossc1": i0(r["crosses completed team1"]), "crossc2": i0(r["crosses completed team2"]),
+        "corners1": i0(r["corners team1"]), "corners2": i0(r["corners team2"]),
+        "fk1": i0(r["free kicks team1"]), "fk2": i0(r["free kicks team2"]),
+        "yc1": i0(r["yellow cards team1"]), "yc2": i0(r["yellow cards team2"]),
+        "rc1": i0(r["red cards team1"]), "rc2": i0(r["red cards team2"]),
+        "fouls1": i0(r["fouls against team1"]), "fouls2": i0(r["fouls against team2"]),
+        "og1": i0(r["own goals team1"]), "og2": i0(r["own goals team2"]),
+        "pen1": i0(r["penalties scored team1"]), "pen2": i0(r["penalties scored team2"]),
+        "gp1": i0(r["goal preventions team1"]), "gp2": i0(r["goal preventions team2"]),
+        "fto1": i0(r["forced turnovers team1"]), "fto2": i0(r["forced turnovers team2"]),
+        "dp1": i0(r["defensive pressures applied team1"]), "dp2": i0(r["defensive pressures applied team2"]),
     })
 
 # Per-team aggregates

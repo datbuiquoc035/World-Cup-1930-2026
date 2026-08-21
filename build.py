@@ -1,36 +1,55 @@
 """Build the World Cup data bundle for the dashboard.
 
-Reads CSV files from the current directory and generates docs/data.js.
+Reads the CSV files and generates docs/data.js.
+Run from anywhere: paths are resolved relative to this file.
 """
 
 import json
-import pandas as pd
 from collections import defaultdict
+from pathlib import Path
 
-ROOT = "."
-SITE = "docs"
+import pandas as pd
+
+ROOT = Path(__file__).resolve().parent
+SITE = ROOT / "docs"
+
 
 def clean_team(name):
     """Clean team names."""
     if pd.isna(name):
         return None
     s = str(name).strip()
-    s = s.replace('rn">', '').replace('rn">', '')
-    s = ' '.join(s.split())
-    aliases = {'Columbia': 'Colombia', 'Costarica': 'Costa Rica', 'Porugal': 'Portugal'}
+    s = s.replace('rn">', "").replace('"', "")
+    s = " ".join(s.split())
+    aliases = {"Columbia": "Colombia", "Costarica": "Costa Rica", "Porugal": "Portugal"}
     return aliases.get(s, s)
 
+
 def i0(v):
-    return int(v) if pd.notna(v) else 0
+    """NaN-safe int."""
+    try:
+        return int(v)
+    except (TypeError, ValueError):
+        return 0
+
+
+def f1(v):
+    """NaN-safe float rounded to 1 decimal."""
+    try:
+        return round(float(v), 1)
+    except (TypeError, ValueError):
+        return 0.0
+
 
 def _s(v):
     s = str(v).strip() if pd.notna(v) else ""
     return s or None
 
-# Load historical data (1930-2014)
-print("Loading historical data...")
-hist = pd.read_csv(f"{ROOT}/WC_1930-2014.csv")
-hist = hist.dropna(subset=["Year"])
+
+# ---------------------------------------------------------------- historical
+print("Loading historical data (1930-2014)...")
+hist = pd.read_csv(ROOT / "WC_1930-2014.csv")
+hist = hist.dropna(subset=["Year"]).drop_duplicates()
 hist["Year"] = hist["Year"].astype(int)
 hist["Attendance"] = pd.to_numeric(hist["Attendance"], errors="coerce")
 for col in ("Home Team Name", "Away Team Name"):
@@ -39,7 +58,6 @@ hist["Home Team Goals"] = pd.to_numeric(hist["Home Team Goals"], errors="coerce"
 hist["Away Team Goals"] = pd.to_numeric(hist["Away Team Goals"], errors="coerce").fillna(0).astype(int)
 hist["total_goals"] = hist["Home Team Goals"] + hist["Away Team Goals"]
 
-# Per-tournament summary
 yearly = []
 for year, g in hist.groupby("Year"):
     yearly.append({
@@ -51,7 +69,6 @@ for year, g in hist.groupby("Year"):
         "att_missing": int(g["Attendance"].isna().sum()),
     })
 
-# Top nations by goals
 goals_by_team = defaultdict(int)
 for _, r in hist.iterrows():
     goals_by_team[r["Home Team Name"]] += r["Home Team Goals"]
@@ -61,7 +78,6 @@ top_nations = [
     for k, v in sorted(goals_by_team.items(), key=lambda x: -x[1])[:15]
 ]
 
-# Top stadiums
 stadiums = hist.groupby("Stadium").agg(
     avg_att=("Attendance", "mean"),
     matches=("MatchID", "count"),
@@ -71,17 +87,26 @@ top_stadiums = [
     for idx, r in stadiums.head(10).iterrows()
 ]
 
-# Finals
 finals = hist[hist["Stage"] == "Final"].copy().sort_values("Year")
-def champion_of(r):
-    wc = r["Win conditions"] if pd.notna(r["Win conditions"]) and str(r["Win conditions"]).strip() else None
-    if wc and str(wc).strip():
-        return str(wc).strip().split()[0]
-    if r["Home Team Goals"] > r["Away Team Goals"]:
-        return r["Home Team Name"]
-    if r["Away Team Goals"] > r["Home Team Goals"]:
-        return r["Away Team Name"]
+
+
+def champion_of(row):
+    """Pick whichever finalist is named in 'Win conditions'; fall back to score."""
+    wc = _s(row["Win conditions"]) or ""
+    home, away = row["Home Team Name"], row["Away Team Name"]
+    if wc:
+        home_in = home and home in wc
+        away_in = away and away in wc
+        if home_in and not away_in:
+            return home
+        if away_in and not home_in:
+            return away
+    if row["Home Team Goals"] > row["Away Team Goals"]:
+        return home
+    if row["Away Team Goals"] > row["Home Team Goals"]:
+        return away
     return None
+
 
 finals_list = [
     {
@@ -92,12 +117,11 @@ finals_list = [
         "away": r["Away Team Name"],
         "att": int(r["Attendance"]) if pd.notna(r["Attendance"]) else None,
         "champion": champion_of(r),
-        "win_conditions": r["Win conditions"] if pd.notna(r["Win conditions"]) and str(r["Win conditions"]).strip() else None,
+        "win_conditions": _s(r.get("Win conditions")),
     }
     for _, r in finals.iterrows()
 ]
 
-# Match list
 matches_hist = []
 for _, r in hist.iterrows():
     matches_hist.append({
@@ -108,8 +132,8 @@ for _, r in hist.iterrows():
         "ag": int(r["Away Team Goals"]),
         "away": r["Away Team Name"],
         "att": int(r["Attendance"]) if pd.notna(r["Attendance"]) else None,
-        "city": r["City"] if pd.notna(r["City"]) else None,
-        "stadium": r["Stadium"] if pd.notna(r["Stadium"]) else None,
+        "city": _s(r["City"]),
+        "stadium": _s(r["Stadium"]),
         "datetime": _s(r["Datetime"]),
         "ht_h": i0(r["Half-time Home Goals"]) if pd.notna(r.get("Half-time Home Goals")) else None,
         "ht_a": i0(r["Half-time Away Goals"]) if pd.notna(r.get("Half-time Away Goals")) else None,
@@ -122,125 +146,147 @@ for _, r in hist.iterrows():
         "win_conditions": _s(r.get("Win conditions")),
     })
 
-print(f"✓ Historical: {len(matches_hist)} matches, {len(yearly)} tournaments")
+print(f"  Historical: {len(matches_hist)} matches, {len(yearly)} tournaments")
 
-# Load2018 data
-print("Loading2018 data...")
-matches_18 = pd.read_csv(f"{ROOT}/World_cup_2018_matches.csv")
-goals_18 = pd.read_csv(f"{ROOT}/World_cup_2018_goals.csv")
-countries_18 = pd.read_csv(f"{ROOT}/World_cup_2018_country.csv")
+# ---------------------------------------------------------------- 2018
+print("Loading 2018 data...")
+m18 = pd.read_csv(ROOT / "World_cup_2018_matches.csv")
+g18 = pd.read_csv(ROOT / "World_cup_2018_goals.csv")
+c18 = pd.read_csv(ROOT / "World_cup_2018_country.csv")
 
 matches_2018 = []
-for _, r in matches_18.iterrows():
+for _, r in m18.iterrows():
+    hg, ag = i0(r["Home_goals"]), i0(r["Away_goals"])
+    pen = _s(r.get("Penalties")) == "Y"
+    hpk, apk = i0(r.get("Home_PK_made")), i0(r.get("Away_PK_made"))
+    # regulation/extra-time result; shootout winner recorded separately
+    if pen:
+        outcome = "H" if hpk > apk else "A" if apk > hpk else None
+    elif hg != ag:
+        outcome = "H" if hg > ag else "A"
+    else:
+        outcome = None
     matches_2018.append({
-        "date": str(r["Date"]) if pd.notna(r["Date"]) else None,
-        "stage": str(r["Stage"]) if pd.notna(r["Stage"]) else None,
+        "date": _s(r["Date"]),
+        "stage": _s(r["Stage"]),
         "home": clean_team(r["Home"]),
         "away": clean_team(r["Away"]),
-        "home_goals": int(r["Home_goals"]) if pd.notna(r["Home_goals"]) else 0,
-        "away_goals": int(r["Away_goals"]) if pd.notna(r["Away_goals"]) else 0,
-        "home_shots": int(r["Home_shots"]) if pd.notna(r["Home_shots"]) else 0,
-        "away_shots": int(r["Away_shots"]) if pd.notna(r["Away_shots"]) else 0,
-        "home_shots_on_target": int(r["Home_shots_on_target"]) if pd.notna(r["Home_shots_on_target"]) else 0,
-        "away_shots_on_target": int(r["Away_shots_on_target"]) if pd.notna(r["Away_shots_on_target"]) else 0,
-        "home_possession": int(r["Home_possession"]) if pd.notna(r["Home_possession"]) else 0,
-        "away_possession": int(r["Away_possession"]) if pd.notna(r["Away_possession"]) else 0,
-        "home_fouls": int(r["Home_fouls"]) if pd.notna(r["Home_fouls"]) else 0,
-        "away_fouls": int(r["Away_fouls"]) if pd.notna(r["Away_fouls"]) else 0,
-        "home_yellow": int(r["Home_yellow"]) if pd.notna(r["Home_yellow"]) else 0,
-        "away_yellow": int(r["Away_yellow"]) if pd.notna(r["Away_yellow"]) else 0,
-        "home_red": int(r["Home_red"]) if pd.notna(r["Home_red"]) else 0,
-        "away_red": int(r["Away_red"]) if pd.notna(r["Away_red"]) else 0,
-        "home_corners": int(r["Home_corners"]) if pd.notna(r["Home_corners"]) else 0,
-        "away_corners": int(r["Away_corners"]) if pd.notna(r["Away_corners"]) else 0,
-        "total_goals": int(r["Home_goals"]) + int(r["Away_goals"]) if pd.notna(r["Home_goals"]) and pd.notna(r["Away_goals"]) else 0,
+        "home_goals": hg, "away_goals": ag,
+        "home_shots": i0(r["Home_shots"]), "away_shots": i0(r["Away_shots"]),
+        "home_shots_on_target": i0(r["Home_shots_on_target"]), "away_shots_on_target": i0(r["Away_shots_on_target"]),
+        "home_possession": i0(r["Home_possession"]), "away_possession": i0(r["Away_possession"]),
+        "home_fouls": i0(r["Home_fouls"]), "away_fouls": i0(r["Away_fouls"]),
+        "home_yellow": i0(r["Home_yellow"]), "away_yellow": i0(r["Away_yellow"]),
+        "home_red": i0(r["Home_red"]), "away_red": i0(r["Away_red"]),
+        "home_corners": i0(r["Home_corners"]), "away_corners": i0(r["Away_corners"]),
+        "penalty_shootout": pen,
+        "outcome": outcome,
+        "total_goals": hg + ag,
     })
 
 goals_2018 = []
-for _, r in goals_18.iterrows():
+for _, r in g18.iterrows():
     goals_2018.append({
-        "date": str(r["Date"]) if pd.notna(r["Date"]) else None,
-        "stage": str(r["Stage"]) if pd.notna(r["Stage"]) else None,
+        "date": _s(r["Date"]),
+        "stage": _s(r["Stage"]),
         "home": clean_team(r["Home"]),
         "away": clean_team(r["Away"]),
-        "team_scored": str(r["Team_scored"]) if pd.notna(r["Team_scored"]) else None,
-        "player_scored": str(r["Player_scored"]) if pd.notna(r["Player_scored"]) else None,
-        "time": str(r["Time"]) if pd.notna(r["Time"]) else None,
-        "own_goal": str(r["Own_goal"]) if pd.notna(r["Own_goal"]) else "N",
-        "penalty": str(r["Penalty"]) if pd.notna(r["Penalty"]) else "N",
+        "team_scored": _s(r["Team_scored"]),
+        "player_scored": _s(r["Player_scored"]),
+        "time": _s(r["Time"]),
+        "own_goal": _s(r.get("Own_goal")) == "Y",
+        "penalty": _s(r.get("Penalty")) == "Y",
     })
 
 countries_2018 = []
-for _, r in countries_18.iterrows():
+for _, r in c18.iterrows():
     countries_2018.append({
-        "country": str(r["Country"]) if pd.notna(r["Country"]) else None,
-        "world_ranking": int(r["World_ranking"]) if pd.notna(r["World_ranking"]) else None,
-        "tournament_ranking": int(r["Tournament_ranking"]) if pd.notna(r["Tournament_ranking"]) else None,
-        "group": str(r["Group"]) if pd.notna(r["Group"]) else None,
-        "group_score": int(r["Group_score"]) if pd.notna(r["Group_score"]) else 0,
-        "group_ranking": int(r["Group_ranking"]) if pd.notna(r["Group_ranking"]) else None,
-        "last16": str(r["Last16"]) if pd.notna(r["Last16"]) else "N",
-        "qfinals": str(r["QFinals"]) if pd.notna(r["QFinals"]) else "N",
-        "sfinals": str(r["SFinals"]) if pd.notna(r["SFinals"]) else "N",
-        "finals": str(r["Finals"]) if pd.notna(r["Finals"]) else "N",
-        "winner": str(r["Winner"]) if pd.notna(r["Winner"]) else "N",
+        "country": _s(r["Country"]),
+        "world_ranking": i0(r["World_ranking"]) or None,
+        "tournament_ranking": i0(r["Tournament_ranking"]) or None,
+        "group": _s(r["Group"]),
+        "group_score": i0(r["Group_score"]),
+        "group_ranking": i0(r["Group_ranking"]) or None,
+        "last16": _s(r["Last16"]) == "Y",
+        "qfinals": _s(r["QFinals"]) == "Y",
+        "sfinals": _s(r["SFinals"]) == "Y",
+        "finals": _s(r["Finals"]) == "Y",
+        "winner": _s(r["Winner"]) == "Y",
     })
 
-# Aggregate2018 team performance
 team_perf_2018 = {}
 for m in matches_2018:
     for team, is_home in [(m["home"], True), (m["away"], False)]:
         if team not in team_perf_2018:
             team_perf_2018[team] = {"matches": 0, "w": 0, "d": 0, "l": 0, "gf": 0, "ga": 0, "poss": []}
-        team_perf_2018[team]["matches"] += 1
+        st = team_perf_2018[team]
+        st["matches"] += 1
         gf = m["home_goals"] if is_home else m["away_goals"]
         ga = m["away_goals"] if is_home else m["home_goals"]
-        team_perf_2018[team]["gf"] += gf
-        team_perf_2018[team]["ga"] += ga
-        team_perf_2018[team]["poss"].append(m["home_possession"] if is_home else m["away_possession"])
-        if gf > ga:
-            team_perf_2018[team]["w"] += 1
-        elif gf == ga:
-            team_perf_2018[team]["d"] += 1
+        st["gf"] += gf
+        st["ga"] += ga
+        st["poss"].append(m["home_possession"] if is_home else m["away_possession"])
+        won = m["outcome"] == ("H" if is_home else "A")
+        lost = m["outcome"] == ("A" if is_home else "H")
+        if won:
+            st["w"] += 1
+        elif lost:
+            st["l"] += 1
         else:
-            team_perf_2018[team]["l"] += 1
+            st["d"] += 1
 
-teams_2018 = [
-    {
-        "team": team,
-        "matches": s["matches"],
-        "w": s["w"],
-        "d": s["d"],
-        "l": s["l"],
-        "gf": s["gf"],
-        "ga": s["ga"],
-        "gd": s["gf"] - s["ga"],
-        "avg_possession": round(sum(s["poss"]) / len(s["poss"]), 1) if s["poss"] else 0,
-    }
-    for team, s in sorted(team_perf_2018.items(), key=lambda x: -(x[1]["w"] * 3 + x[1]["d"]))
-]
+teams_2018 = sorted(
+    (
+        {
+            "team": team,
+            "matches": s["matches"], "w": s["w"], "d": s["d"], "l": s["l"],
+            "gf": s["gf"], "ga": s["ga"], "gd": s["gf"] - s["ga"],
+            "avg_possession": round(sum(s["poss"]) / len(s["poss"]), 1) if s["poss"] else 0,
+        }
+        for team, s in team_perf_2018.items()
+    ),
+    key=lambda x: -(x["w"] * 3 + x["d"]),
+)
 
-print(f"✓2018: {len(matches_2018)} matches, {len(goals_2018)} goals, {len(countries_2018)} teams")
+print(f"  2018: {len(matches_2018)} matches, {len(goals_2018)} goals, {len(countries_2018)} teams")
 
-# Load2022 data
-print("Loading2022 data...")
-d22 = pd.read_csv(f"{ROOT}/WC_2022.csv")
+# ---------------------------------------------------------------- 2022
+print("Loading 2022 data...")
+d22 = pd.read_csv(ROOT / "WC_2022.csv")
+
+
+def strip_pct(df):
+    """Defensively strip '%' from any object column so numeric coercion works."""
+    for c in df.columns:
+        if df[c].dtype == object:
+            as_str = df[c].astype(str)
+            if as_str.str.contains("%").any():
+                df[c] = pd.to_numeric(as_str.str.replace("%", "", regex=False), errors="coerce")
+    return df
+
+
+d22 = strip_pct(d22)
 numeric_cols = [c for c in d22.columns if c not in ("team1", "team2", "date", "hour", "category", "team", "Group")]
 for c in numeric_cols:
     d22[c] = pd.to_numeric(d22[c], errors="coerce")
 d22["team1"] = d22["team1"].map(clean_team)
 d22["team2"] = d22["team2"].map(clean_team)
 
+
+def t22(name):
+    return str(name).title().replace("Ir Iran", "IR Iran").replace("Usa", "USA")
+
+
 matches_2022 = []
 for _, r in d22.iterrows():
     matches_2022.append({
-        "t1": r["team1"].title(), "t2": r["team2"].title(),
+        "t1": t22(r["team1"]), "t2": t22(r["team2"]),
         "g1": i0(r["number of goals team1"]), "g2": i0(r["number of goals team2"]),
         "pos1": i0(r["possession team1"]), "pos2": i0(r["possession team2"]),
         "att1": i0(r["total attempts team1"]), "att2": i0(r["total attempts team2"]),
         "ont1": i0(r["on target attempts team1"]), "ont2": i0(r["on target attempts team2"]),
         "pass1": i0(r["passes completed team1"]), "pass2": i0(r["passes completed team2"]),
-        "cat": r["category"],
+        "cat": _s(r["category"]),
         "date": _s(r.get("date")), "hour": _s(r.get("hour")),
         "off1": i0(r["offsides team1"]), "off2": i0(r["offsides team2"]),
         "def1": i0(r["conceded team1"]), "def2": i0(r["conceded team2"]),
@@ -263,7 +309,6 @@ for _, r in d22.iterrows():
         "dp1": i0(r["defensive pressures applied team1"]), "dp2": i0(r["defensive pressures applied team2"]),
     })
 
-# Per-team aggregates for2022
 team_rows = []
 for team in sorted(set(d22["team1"].unique()) | set(d22["team2"].unique())):
     as1 = d22[d22["team1"] == team]
@@ -275,15 +320,13 @@ for team in sorted(set(d22["team1"].unique()) | set(d22["team2"].unique())):
     draws = int(((as1["number of goals team1"] == as1["number of goals team2"]).sum()
                  + (as2["number of goals team2"] == as2["number of goals team1"]).sum()))
     losses = int(len(as1) + len(as2) - wins - draws)
-    def mean_safe(df, col):
-        v = df[col].mean(skipna=True)
-        return round(float(v), 1) if pd.notna(v) else 0
+    n = len(as1) + len(as2)
+    pos_sum = as1["possession team1"].sum() + as2["possession team2"].sum()
     team_rows.append({
-        "team": team.title(),
-        "p": int(len(as1) + len(as2)),
-        "w": wins, "d": draws, "l": losses,
+        "team": t22(team),
+        "p": n, "w": wins, "d": draws, "l": losses,
         "gf": gf, "ga": ga,
-        "pos": round((as1["possession team1"].sum() + as2["possession team2"].sum()) / max(len(as1) + len(as2), 1), 1),
+        "pos": round(float(pos_sum) / max(n, 1), 1),
         "att": int(as1["total attempts team1"].sum() + as2["total attempts team2"].sum()),
         "ont": int(as1["on target attempts team1"].sum() + as2["on target attempts team2"].sum()),
         "passc": int(as1["passes completed team1"].sum() + as2["passes completed team2"].sum()),
@@ -292,50 +335,88 @@ for team in sorted(set(d22["team1"].unique()) | set(d22["team2"].unique())):
     })
 team_rows.sort(key=lambda t: (-t["w"] * 3 - t["d"], -(t["gf"] - t["ga"])))
 
-print(f"✓2022: {len(matches_2022)} matches, {len(team_rows)} teams")
+print(f"  2022: {len(matches_2022)} matches, {len(team_rows)} teams")
 
-# Load2026 data
-print("Loading2026 data...")
-teams26 = pd.read_csv(f"{ROOT}/teams.csv")
-cities26 = pd.read_csv(f"{ROOT}/venues.csv")
-stages26 = pd.read_csv(f"{ROOT}/tournament_stages.csv")
-matches26 = pd.read_csv(f"{ROOT}/matches.csv")
+# ---------------------------------------------------------------- 2026
+print("Loading 2026 data...")
+teams26 = pd.read_csv(ROOT / "teams.csv")
+cities26 = pd.read_csv(ROOT / "venues.csv")
+stages26 = pd.read_csv(ROOT / "tournament_stages.csv")
+matches26 = pd.read_csv(ROOT / "matches.csv")
+players26 = pd.read_csv(ROOT / "player_stats.csv")
+referees26 = pd.read_csv(ROOT / "referees.csv")
 
-teams_by_group = defaultdict(list)
-for _, r in teams26.iterrows():
-    teams_by_group[r["group_letter"]].append({
-        "name": r["team_name"],
-        "code": r["fifa_code"],
-        "placeholder": False,
-    })
-groups_2026 = [{"letter": k, "teams": v} for k, v in sorted(teams_by_group.items())]
-
-city_map = {int(r.venue_id): {"city": r.city, "country": r.country, "venue": r.stadium_name} for _, r in cities26.iterrows()}
-stage_map = {int(r.stage_id): {"name": r.stage_name, "order": int(r.stage_id)} for _, r in stages26.iterrows()}
-team_map = {int(r.team_id): {"name": r.team_name, "code": r.fifa_code, "placeholder": False} for _, r in teams26.iterrows()}
+team_map = {int(r.team_id): {"name": r.team_name, "code": r.fifa_code} for _, r in teams26.iterrows()}
+city_map = {
+    int(r.venue_id): {"city": r.city, "country": r.country, "venue": r.stadium_name, "capacity": int(r.capacity)}
+    for _, r in cities26.iterrows()
+}
+stage_map = {int(r.stage_id): {"name": r.stage_name, "knockout": bool(r.is_knockout)} for _, r in stages26.iterrows()}
+ref_map = {int(r.referee_id): {"name": r.name, "country": r.country} for _, r in referees26.iterrows()}
+player_name_map = {int(r.player_id): r.player_name for _, r in players26.iterrows()}
 
 schedule_2026 = []
 for _, r in matches26.iterrows():
     home = team_map.get(int(r["home_team_id"])) if pd.notna(r["home_team_id"]) else None
     away = team_map.get(int(r["away_team_id"])) if pd.notna(r["away_team_id"]) else None
     city = city_map.get(int(r["venue_id"]), {})
+    ref = ref_map.get(int(r["referee_id"])) if pd.notna(r["referee_id"]) else None
+    potm = player_name_map.get(int(r["player_of_the_match_id"])) if pd.notna(r["player_of_the_match_id"]) else None
+    stage_id = int(r["stage_id"])
+    hs, as_ = r["home_score"], r["away_score"]
     schedule_2026.append({
         "num": int(r["match_id"]),
-        "stage_id": int(r["stage_id"]),
-        "stage": stage_map[int(r["stage_id"])]["name"],
+        "stage_id": stage_id,
+        "stage": stage_map[stage_id]["name"],
+        "knockout": stage_map[stage_id]["knockout"],
         "label": f"{home['name'] if home else 'TBD'} vs {away['name'] if away else 'TBD'}",
         "home": home["name"] if home else None,
         "home_code": home["code"] if home else None,
-        "home_ph": home["placeholder"] if home else False,
         "away": away["name"] if away else None,
         "away_code": away["code"] if away else None,
-        "away_ph": away["placeholder"] if away else False,
+        "hg": int(hs) if pd.notna(hs) else None,
+        "ag": int(as_) if pd.notna(as_) else None,
+        "hpk": int(r["home_penalty_score"]) if pd.notna(r["home_penalty_score"]) else None,
+        "apk": int(r["away_penalty_score"]) if pd.notna(r["away_penalty_score"]) else None,
+        "hxg": f1(r["home_xg"]) if pd.notna(r["home_xg"]) else None,
+        "axg": f1(r["away_xg"]) if pd.notna(r["away_xg"]) else None,
+        "status": _s(r["status"]),
+        "result_type": _s(r["result_type"]),
         "city": city.get("city"),
         "country": city.get("country"),
         "venue": city.get("venue"),
-        "iso": str(r["date"]) if pd.notna(r["date"]) else None,
-        "tz": str(r["kickoff_time_utc"]) if pd.notna(r["kickoff_time_utc"]) else "",
+        "date": _s(r["date"]),
+        "kickoff_local": _s(r["kickoff_local_time"]),
+        "referee": ref["name"] if ref else None,
+        "potm": potm,
     })
+
+groups_2026 = []
+for letter, grp in teams26.groupby("group_letter"):
+    teams_in_group = [{"name": r.team_name, "code": r.fifa_code} for _, r in grp.iterrows()]
+    codes = {t["code"]: t["name"] for t in teams_in_group}
+    table = {code: {"team": name, "code": code, "p": 0, "w": 0, "d": 0, "l": 0,
+                    "gf": 0, "ga": 0, "gd": 0, "pts": 0} for code, name in codes.items()}
+    for m in schedule_2026:
+        if m["stage_id"] != 1 or m["hg"] is None or m["home_code"] not in table or m["away_code"] not in table:
+            continue
+        h, a = table[m["home_code"]], table[m["away_code"]]
+        h["p"] += 1; a["p"] += 1
+        h["gf"] += m["hg"]; h["ga"] += m["ag"]
+        a["gf"] += m["ag"]; a["ga"] += m["hg"]
+        if m["hg"] > m["ag"]:
+            h["w"] += 1; a["l"] += 1; h["pts"] += 3
+        elif m["hg"] < m["ag"]:
+            a["w"] += 1; h["l"] += 1; a["pts"] += 3
+        else:
+            h["d"] += 1; a["d"] += 1; h["pts"] += 1; a["pts"] += 1
+    standings = []
+    for row in table.values():
+        row["gd"] = row["gf"] - row["ga"]
+        standings.append(row)
+    standings.sort(key=lambda x: (-x["pts"], -x["gd"], -x["gf"]))
+    groups_2026.append({"letter": letter, "teams": teams_in_group, "standings": standings})
+groups_2026.sort(key=lambda g: g["letter"])
 
 stages_summary = [
     {"name": r.stage_name, "order": int(r.stage_id),
@@ -345,24 +426,50 @@ stages_summary = [
 
 cities_2026 = [
     {"city": r.city, "country": r.country, "venue": r.stadium_name,
-     "region": "", "code": "",
+     "capacity": int(r.capacity),
      "matches": int((matches26["venue_id"] == r.venue_id).sum())}
     for _, r in cities26.iterrows()
 ]
 
-print(f"✓2026: {len(schedule_2026)} matches, {len(teams26)} teams")
+scorers = players26.nlargest(10, "goals").merge(
+    teams26[["team_id", "team_name", "fifa_code"]], on="team_id", how="left")
+top_scorers_2026 = [
+    {"player": r.player_name, "team": r.team_name, "code": r.fifa_code,
+     "goals": int(r.goals), "assists": int(r.assists)}
+    for _, r in scorers.iterrows()
+]
 
-# Build data bundle
+ref_matches = matches26["referee_id"].value_counts()
+referees_2026 = sorted(
+    (
+        {"name": r.name, "country": r.country,
+         "matches": int(ref_matches.get(r.referee_id, 0)),
+         "cards_per_game": f1(r.avg_cards_per_game)}
+        for _, r in referees26.iterrows()
+    ),
+    key=lambda x: -x["matches"],
+)[:10]
+
+print(f"  2026: {len(schedule_2026)} matches, {len(teams26)} teams, {len(cities26)} venues")
+
+# ---------------------------------------------------------------- overview
+goals_2018_total = sum(m["total_goals"] for m in matches_2018)
+goals_2022_total = sum(m["g1"] + m["g2"] for m in matches_2022)
+goals_2026_total = sum(m["hg"] + m["ag"] for m in schedule_2026 if m["hg"] is not None)
+
 overview = {
-    "tournaments_1930_2014": len(yearly),
-    "matches_1930_2014": len(matches_hist),
-    "goals_1930_2014": sum(y["goals"] for y in yearly),
-    "avg_gpg_1930_2014": round(sum(y["gpg"] for y in yearly) / len(yearly), 2),
+    "tournaments": len(yearly),
+    "matches_hist": len(matches_hist),
+    "goals_hist": sum(y["goals"] for y in yearly),
+    "avg_gpg_hist": round(sum(y["gpg"] for y in yearly) / len(yearly), 2),
+    "total_attendance_hist": int(hist["Attendance"].sum(skipna=True)),
+    "matches_2018": len(matches_2018),
     "matches_2022": int(len(d22)),
     "teams_2026": int(len(teams26)),
-    "cities_2026": int(len(cities26)),
+    "venues_2026": int(len(cities26)),
     "matches_2026": int(len(matches26)),
-    "total_attendance_1930_2014": int(hist["Attendance"].sum(skipna=True)),
+    "matches_all": len(matches_hist) + len(matches_2018) + int(len(d22)) + int(len(matches26)),
+    "goals_all": sum(y["goals"] for y in yearly) + goals_2018_total + goals_2022_total + goals_2026_total,
 }
 
 data = {
@@ -382,17 +489,39 @@ data = {
     "schedule_2026": schedule_2026,
     "stages_2026": stages_summary,
     "cities_2026": cities_2026,
+    "top_scorers_2026": top_scorers_2026,
+    "referees_2026": referees_2026,
 }
 
-# Write data.js
-import os
-os.makedirs(SITE, exist_ok=True)
-with open(f"{SITE}/data.js", "w") as f:
-    f.write("// Auto-generated by build.py - do not edit\n")
-    f.write("window.WC_DATA = " + json.dumps(data, ensure_ascii=False))
 
-print(f"\n✓ Generated {SITE}/data.js ({len(json.dumps(data)):,} bytes)")
-print(f"  Historical: {len(yearly)} tournaments, {len(matches_hist)} matches")
-print(f"  2018: {len(matches_2018)} matches, {len(goals_2018)} goals")
-print(f"  2022: {len(matches_2022)} matches, {len(team_rows)} teams")
-print(f"  2026: {len(schedule_2026)} matches, {len(teams26)} teams")
+# ---------------------------------------------------------------- validation
+def validate(data):
+    o = data["overview"]
+    assert o["matches_hist"] == 836, f"expected 836 historical matches, got {o['matches_hist']}"
+    # 1950 had no official final (decided by a final group round) -> 19 finals
+    assert len(data["finals"]) == 19, f"expected 19 finals, got {len(data['finals'])}"
+    assert len({f["year"] for f in data["finals"]}) == 19, "duplicate final years"
+    assert len({m["matchid"] for m in data["matches_hist"]}) == 836, "duplicate MatchIDs"
+    assert o["matches_2018"] == 64, f"expected 64 matches in 2018, got {o['matches_2018']}"
+    assert o["matches_2022"] == 64, f"expected 64 matches in 2022, got {o['matches_2022']}"
+    assert all(m["pos1"] > 0 and m["pos2"] > 0 for m in data["matches_2022"]), "2022 possession has zeros"
+    assert all(t["pos"] > 0 for t in data["teams_2022"]), "2022 team possession has zeros"
+    assert o["matches_2026"] == 104, f"expected 104 matches in 2026, got {o['matches_2026']}"
+    assert o["teams_2026"] == 48, f"expected 48 teams in 2026, got {o['teams_2026']}"
+    assert o["venues_2026"] == 16, f"expected 16 venues in 2026, got {o['venues_2026']}"
+    group_games = sum(t["p"] for g in data["groups_2026"] for t in g["standings"]) // 2
+    assert group_games == 72, f"expected 72 group games in 2026, got {group_games}"
+    assert len(data["schedule_2026"][0]) > 0 and all(m["venue"] for m in data["schedule_2026"]), "missing venue"
+    print("Validation passed.")
+
+
+validate(data)
+
+# ---------------------------------------------------------------- write bundle
+SITE.mkdir(exist_ok=True)
+payload = json.dumps(data, ensure_ascii=False, separators=(",", ":"))
+with open(SITE / "data.js", "w") as f:
+    f.write("// Auto-generated by build.py - do not edit\n")
+    f.write("window.WC_DATA=" + payload + ";")
+
+print(f"\nGenerated docs/data.js ({len(payload):,} bytes)")

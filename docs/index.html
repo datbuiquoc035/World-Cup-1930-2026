@@ -60,6 +60,10 @@ input:focus,select:focus{outline:none;border-color:#0066cc}
 .city .matches{color:#0066cc;font-weight:600;margin-top:.5rem}
 .note{color:#666;font-size:.85rem;font-style:italic}
 .error-banner{display:none;background:#f8d7da;color:#721c24;border:1px solid #f5c6cb;border-radius:8px;padding:1rem 1.5rem;margin:1.5rem auto;max-width:1200px}
+.champ-banner{display:none;align-items:center;gap:.9rem;background:linear-gradient(135deg,#ffe08a,#f0a824);color:#4a3200;border-radius:10px;padding:.85rem 1.25rem;margin-bottom:1.25rem;box-shadow:0 2px 6px rgba(0,0,0,.15)}
+.champ-banner .lbl{font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;font-weight:800;opacity:.75}
+.champ-banner .name{font-size:1.2rem;font-weight:800}
+.champ-banner .yr{margin-left:auto;font-size:.8rem;font-weight:700;opacity:.7}
 .pk{font-size:.75rem;color:#666}
 @media(max-width:768px){
   .header h1{font-size:1.5rem}
@@ -125,6 +129,7 @@ input:focus,select:focus{outline:none;border-color:#0066cc}
   </div>
 
   <div class="panel" id="p-2018">
+    <div class="champ-banner" id="champ-2018"></div>
     <div class="stats" id="s-2018"></div>
     <div class="card">
       <h2 class="y18">How Far Teams Went</h2>
@@ -146,6 +151,7 @@ input:focus,select:focus{outline:none;border-color:#0066cc}
   </div>
 
   <div class="panel" id="p-2022">
+    <div class="champ-banner" id="champ-2022"></div>
     <div class="stats" id="s-2022"></div>
     <div class="card">
       <h2 class="y22">Team Stats</h2>
@@ -158,6 +164,7 @@ input:focus,select:focus{outline:none;border-color:#0066cc}
   </div>
 
   <div class="panel" id="p-2026">
+    <div class="champ-banner" id="champ-2026"></div>
     <div class="stats" id="s-2026"></div>
     <div class="card">
       <h2 class="y26">Groups &amp; Standings</h2>
@@ -217,6 +224,18 @@ function chart(el,items,color="#0066cc"){
   const max=Math.max(...items.map(d=>d.v),1);
   el.innerHTML=items.map(d=>`<div class="bar" style="height:${Math.max((d.v/max)*100,2)}%;background:${color}" title="${esc(d.l)}: ${fmt(d.v)}"><div class="val">${fmt(d.v)}</div><div class="lbl">${esc(d.l)}</div></div>`).join("");
 }
+
+// Champion banners (2018-2026)
+const CH=D.champions||{};
+function champBanner(id,yr){
+  const el=$(id),name=CH[yr];
+  if(!name){el.style.display="none";return;}
+  el.style.display="flex";
+  el.innerHTML=`<span class="lbl">Tournament Champion</span><span class="name">${esc(name)}</span><span class="yr">World Cup ${yr}</span>`;
+}
+champBanner("champ-2018","2018");
+champBanner("champ-2022","2022");
+champBanner("champ-2026","2026");
 
 // Overview
 const O=D.overview;
@@ -316,15 +335,12 @@ if(D.matches_2022&&D.matches_2022.length){
 // 2026 ----------------------------------------------------------------------
 if(D.schedule_2026&&D.schedule_2026.length){
   const played=D.schedule_2026.filter(m=>m.hg!=null);
-  const champion=(()=>{const f=D.schedule_2026.find(m=>m.stage==="Final");
-    if(!f||f.hg==null)return null;
-    if(f.hg>f.ag)return f.home;if(f.ag>f.hg)return f.away;
-    if(f.hpk!=null)return f.hpk>f.apk?f.home:f.away;return null;})();
+  const champion=CH["2026"]||null;
   $("s-2026").innerHTML=[
     [fmt(D.overview.teams_2026),"Teams"],
     [fmt(D.schedule_2026.length),"Matches"],
     [fmt(D.overview.venues_2026),"Venues"],
-    [fmt(champion||"—"),"Simulated Champion"],
+    [esc(champion||"—"),"Simulated Champion"],
   ].map(([v,l])=>`<div class="stat"><div class="stat-val">${esc(v)}</div><div class="stat-lbl">${l}</div></div>`).join("");
 
   // Groups with standings

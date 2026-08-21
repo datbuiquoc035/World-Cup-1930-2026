@@ -452,6 +452,40 @@ referees_2026 = sorted(
 
 print(f"  2026: {len(schedule_2026)} matches, {len(teams26)} teams, {len(cities26)} venues")
 
+# ---------------------------------------------------------------- champions
+# 2018: the countries table carries an explicit winner flag.
+champion_2018 = next((c["country"] for c in countries_2018 if c["winner"]), None)
+
+# 2022: decide from the Final scoreline. The CSV has no shootout score and
+# that final ended 3-3, so fall back to the recorded result (4-2 on pens).
+CHAMPION_TIEBREAK = {"2022": "Argentina"}
+final22 = d22[d22["category"] == "Final"]
+if len(final22):
+    r = final22.iloc[0]
+    g1, g2 = i0(r["number of goals team1"]), i0(r["number of goals team2"])
+    if g1 != g2:
+        champion_2022 = t22(r["team1"] if g1 > g2 else r["team2"])
+    else:
+        champion_2022 = CHAMPION_TIEBREAK.get("2022")
+else:
+    champion_2022 = None
+
+# 2026: winner of the simulated Final (penalty score decides if level).
+final26 = next((m for m in schedule_2026 if m["stage"] == "Final"), None)
+champion_2026 = None
+if final26 and final26["hg"] is not None:
+    if final26["hpk"] is not None and final26["hpk"] != final26["apk"]:
+        champion_2026 = final26["home"] if final26["hpk"] > final26["apk"] else final26["away"]
+    elif final26["hg"] != final26["ag"]:
+        champion_2026 = final26["home"] if final26["hg"] > final26["ag"] else final26["away"]
+
+champions = {
+    "2018": champion_2018,
+    "2022": champion_2022,
+    "2026": champion_2026,
+}
+print(f"  Champions: 2018 {champion_2018} | 2022 {champion_2022} | 2026 {champion_2026}")
+
 # ---------------------------------------------------------------- overview
 goals_2018_total = sum(m["total_goals"] for m in matches_2018)
 goals_2022_total = sum(m["g1"] + m["g2"] for m in matches_2022)
@@ -474,6 +508,7 @@ overview = {
 
 data = {
     "overview": overview,
+    "champions": champions,
     "yearly": yearly,
     "top_nations": top_nations,
     "top_stadiums": top_stadiums,
@@ -509,6 +544,7 @@ def validate(data):
     assert o["matches_2026"] == 104, f"expected 104 matches in 2026, got {o['matches_2026']}"
     assert o["teams_2026"] == 48, f"expected 48 teams in 2026, got {o['teams_2026']}"
     assert o["venues_2026"] == 16, f"expected 16 venues in 2026, got {o['venues_2026']}"
+    assert all(data["champions"].values()), f"missing champion(s): {data['champions']}"
     group_games = sum(t["p"] for g in data["groups_2026"] for t in g["standings"]) // 2
     assert group_games == 72, f"expected 72 group games in 2026, got {group_games}"
     assert len(data["schedule_2026"][0]) > 0 and all(m["venue"] for m in data["schedule_2026"]), "missing venue"

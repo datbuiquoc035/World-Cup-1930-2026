@@ -25,18 +25,18 @@ ML baseline.
 
 | File | Contents | Size |
 |---|---|---|
-| `teams.csv` | All 48 teams: group, confederation, pre-tournament FIFA rank, Elo rating, manager | 48 rows × 8 cols |
-| `venues.csv` | The 16 host venues: city, country, capacity, coordinates, elevation | 16 rows × 8 cols |
-| `matches.csv` | All 104 simulated matches: scores, penalties, xG, result type, referee, POTM (`kickoff_local_time` is venue-local) | 104 rows × 17 cols |
-| `tournament_stages.csv` | The 7 stages from Group Stage to Final | 7 rows × 3 cols |
-| `matches_detailed.csv` | Denormalized mirror of `matches.csv` with team/venue names resolved | 104 rows × 23 cols |
-| `match_team_stats.csv` | Per-team per-match stats for the simulation | 208 rows × 12 cols |
-| `match_events.csv` | Goal, card, VAR and shootout events per match | 601 rows × 6 cols |
-| `match_lineups.csv` | Starting XIs, positions and minutes played | 5408 rows × 7 cols |
-| `player_stats.csv` | Player tournament totals: goals, assists, cards, saves, ratings | 1248 rows × 21 cols |
-| `squads_and_players.csv` | Squad details: club, market value, caps, height, age | 1248 rows × 10 cols |
-| `referees.csv` | Referee countries and average cards per game | 28 rows × 4 cols |
-| `match_prediction_features.csv` / `_X.csv` / `_targets_y.csv` | Pre-match features and H/D/A targets for modeling | 104 rows each |
+| `data_2026/teams.csv` | All 48 teams: group, confederation, pre-tournament FIFA rank, Elo rating, manager | 48 rows × 8 cols |
+| `data_2026/venues.csv` | The 16 host venues: city, country, capacity, coordinates, elevation | 16 rows × 8 cols |
+| `data_2026/matches.csv` | All 104 simulated matches: scores, penalties, xG, result type, referee, POTM (`kickoff_local_time` is venue-local) | 104 rows × 17 cols |
+| `data_2026/tournament_stages.csv` | The 7 stages from Group Stage to Final | 7 rows × 3 cols |
+| `data_2026/matches_detailed.csv` | Denormalized mirror of `matches.csv` with team/venue names resolved | 104 rows × 23 cols |
+| `data_2026/match_team_stats.csv` | Per-team per-match stats for the simulation | 208 rows × 12 cols |
+| `data_2026/match_events.csv` | Goal, card, VAR and shootout events per match | 601 rows × 6 cols |
+| `data_2026/match_lineups.csv` | Starting XIs, positions and minutes played | 5408 rows × 7 cols |
+| `data_2026/player_stats.csv` | Player tournament totals: goals, assists, cards, saves, ratings | 1248 rows × 21 cols |
+| `data_2026/squads_and_players.csv` | Squad details: club, market value, caps, height, age | 1248 rows × 10 cols |
+| `data_2026/referees.csv` | Referee countries and average cards per game | 28 rows × 4 cols |
+| `data_2026/match_prediction_features.csv` / `_X.csv` / `_targets_y.csv` | Pre-match features and H/D/A targets for modeling | 104 rows each |
 
 ## Dashboard website
 

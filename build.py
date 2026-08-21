@@ -340,12 +340,13 @@ print(f"  2022: {len(matches_2022)} matches, {len(team_rows)} teams")
 
 # ---------------------------------------------------------------- 2026
 print("Loading 2026 data...")
-teams26 = pd.read_csv(ROOT / "teams.csv")
-cities26 = pd.read_csv(ROOT / "venues.csv")
-stages26 = pd.read_csv(ROOT / "tournament_stages.csv")
-matches26 = pd.read_csv(ROOT / "matches.csv")
-players26 = pd.read_csv(ROOT / "player_stats.csv")
-referees26 = pd.read_csv(ROOT / "referees.csv")
+D26 = ROOT / "data_2026"
+teams26 = pd.read_csv(D26 / "teams.csv")
+cities26 = pd.read_csv(D26 / "venues.csv")
+stages26 = pd.read_csv(D26 / "tournament_stages.csv")
+matches26 = pd.read_csv(D26 / "matches.csv")
+players26 = pd.read_csv(D26 / "player_stats.csv")
+referees26 = pd.read_csv(D26 / "referees.csv")
 
 team_map = {int(r.team_id): {"name": r.team_name, "code": r.fifa_code} for _, r in teams26.iterrows()}
 city_map = {

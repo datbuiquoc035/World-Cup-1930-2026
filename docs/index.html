@@ -3,563 +3,256 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="FIFA World Cup Report Dashboard: Comprehensive analysis of every tournament from1930 to2026.">
-<title>World Cup1930–2026 · Report Dashboard</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<title>FIFA World Cup Dashboard</title>
 <style>
-  :root {
-    --bg: #f8f9fa; --panel: #ffffff; --panel2: #f1f3f5; --line: #dee2e6;
-    --txt: #212529; --muted: #6c757d; --green: #198754; --amber: #ffc107;
-    --red: #dc3545; --blue: #0d6efd; --gold: #fd7e14;
-    --acc-history: #0d6efd; --acc-y2018: #ffc107; --acc-y2022: #6f42c1; --acc-y2026: #198754;
-    --shadow: 0 .125rem .25rem rgba(0,0,0,.075);
-    --shadow-lg: 0 .5rem1rem rgba(0,0,0,.1);
-  }
-  *{box-sizing:border-box;margin:0;padding:0}
-  html{scroll-behavior:smooth}
-  body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--txt);line-height:1.6}
-  
-  .dashboard-header{
-    background:linear-gradient(135deg,#1a237e0%,#0d47a150%,#1565c0100%);
-    color:white;padding:3rem2rem;text-align:center;
-    border-bottom:4px solid var(--gold);
-  }
-  .dashboard-header h1{font-size:2.75rem;font-weight:700;margin-bottom:.75rem;letter-spacing:-.5px}
-  .dashboard-header p{opacity:.9;font-size:1.15rem;max-width:700px;margin:0auto}
-  
-  .dashboard-nav{
-    background:white;
-    box-shadow:var(--shadow-lg);
-    position:sticky;top:0;z-index:100;
-    border-bottom:1px solid var(--line);
-  }
-  .nav-container{
-    max-width:1400px;margin:0auto;
-    display:flex;align-items:center;
-    padding:02rem;overflow-x:auto;
-  }
-  .nav-tabs{display:flex;gap:.25rem;flex:1}
-  .nav-tab{
-    padding:1rem1.25rem;border:none;background:none;
-    font-weight:600;font-size:.9rem;
-    color:var(--muted);cursor:pointer;
-    border-bottom:3px solid transparent;
-    white-space:nowrap;transition:all.2s;
-    position:relative;
-  }
-  .nav-tab:hover{color:var(--txt);background:var(--panel2)}
-  .nav-tab.active{color:var(--blue);border-bottom-color:var(--blue)}
-  .nav-tab[data-era="history"].active{border-bottom-color:var(--acc-history)}
-  .nav-tab[data-era="y2018"].active{border-bottom-color:var(--acc-y2018)}
-  .nav-tab[data-era="y2022"].active{border-bottom-color:var(--acc-y2022)}
-  .nav-tab[data-era="y2026"].active{border-bottom-color:var(--acc-y2026)}
-  .nav-tab::after{
-    content:'';position:absolute;bottom:0;left:50%;transform:translateX(-50%);
-    width:0;height:3px;background:currentColor;transition:width.2s;
-  }
-  .nav-tab:hover::after{width:80%}
-  .nav-tab.active::after{width:100%}
-  
-  .dashboard-main{max-width:1400px;margin:0auto;padding:2rem}
-  .panel{display:none;animation:fadeIn.3s ease-in}
-  .panel.active{display:block}
-  @keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
-  
-  .card{
-    background:var(--panel);border-radius:.75rem;
-    box-shadow:var(--shadow);padding:1.75rem;
-    margin-bottom:1.5rem;border:1px solid var(--line);
-    transition:box-shadow.2s;
-  }
-  .card:hover{box-shadow:var(--shadow-lg)}
-  .card-header{
-    font-size:1.35rem;font-weight:700;
-    margin-bottom:1.25rem;padding-bottom:.75rem;
-    border-bottom:3px solid var(--blue);
-    display:flex;align-items:center;gap:.75rem;
-  }
-  .card-header.history{border-color:var(--acc-history)}
-  .card-header.y2018{border-color:var(--acc-y2018)}
-  .card-header.y2022{border-color:var(--acc-y2022)}
-  .card-header.y2026{border-color:var(--acc-y2026)}
-  .card-header::before{
-    content:'';width:8px;height:8px;
-    border-radius:50%;background:currentColor;
-  }
-  
-  .stats-grid{
-    display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
-    gap:1.25rem;margin-bottom:2rem;
-  }
-  .stat-card{
-    background:var(--panel);border-radius:.75rem;
-    box-shadow:var(--shadow);padding:1.5rem;
-    text-align:center;border:1px solid var(--line);
-    transition:transform.2s,box-shadow.2s;
-  }
-  .stat-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-lg)}
-  .stat-value{font-size:2.25rem;font-weight:700;color:var(--blue);margin-bottom:.25rem}
-  .stat-label{color:var(--muted);font-size:.9rem;font-weight:500}
-  
-  .chart-container{
-    background:var(--panel);border-radius:.75rem;
-    box-shadow:var(--shadow);padding:1.75rem;
-    margin-bottom:1.5rem;border:1px solid var(--line);
-  }
-  .chart-title{font-size:1.1rem;font-weight:600;margin-bottom:1.25rem;color:var(--txt)}
-  .bar-chart{
-    display:flex;align-items:flex-end;gap:.75rem;
-    height:220px;padding:1.5rem0;overflow-x:auto;
-  }
-  .bar{
-    flex:1;min-width:35px;background:var(--blue);
-    border-radius:6px6px00;transition:all.2s;
-    position:relative;cursor:pointer;
-  }
-  .bar:hover{filter:brightness(1.15);transform:scaleY(1.02)}
-  .bar-label{
-    position:absolute;bottom:-2.5rem;left:50%;
-    transform:translateX(-50%);font-size:.75rem;
-    color:var(--muted);white-space:nowrap;font-weight:500;
-  }
-  .bar-value{
-    position:absolute;top:-2rem;left:50%;
-    transform:translateX(-50%);font-size:.8rem;
-    font-weight:700;color:var(--txt);
-    background:white;padding:.15rem.5rem;
-    border-radius:4px;box-shadow:var(--shadow);
-  }
-  
-  .table-container{
-    overflow-x:auto;border-radius:.75rem;
-    box-shadow:var(--shadow);border:1px solid var(--line);
-  }
-  table{width:100%;border-collapse:collapse;background:var(--panel)}
-  th,td{padding:1rem1.25rem;text-align:left;border-bottom:1px solid var(--line)}
-  th{
-    background:var(--panel2);font-weight:600;
-    font-size:.85rem;color:var(--muted);
-    text-transform:uppercase;letter-spacing:.5px;
-    position:sticky;top:0;z-index:10;
-  }
-  tr{transition:background.15s}
-  tr:hover{background:var(--panel2)}
-  tr:last-child td{border-bottom:none}
-  .num{text-align:right;font-variant-numeric:tabular-nums}
-  
-  .badge{
-    display:inline-flex;align-items:center;gap:.25rem;
-    padding:.35rem.75rem;border-radius:2rem;
-    font-size:.8rem;font-weight:600;
-  }
-  .badge-stage{background:rgba(13,110,253,.1);color:var(--blue)}
-  .badge-win{background:rgba(25,135,84,.1);color:var(--green)}
-  .badge-draw{background:rgba(255,193,7,.1);color:var(--amber)}
-  .badge-loss{background:rgba(220,53,69,.1);color:var(--red)}
-  
-  .controls{
-    display:flex;gap:1rem;flex-wrap:wrap;
-    margin-bottom:1.5rem;align-items:center;
-  }
-  .search-input{
-    padding:.75rem1.25rem;border:2px solid var(--line);
-    border-radius:.5rem;font-size:1rem;width:320px;
-    transition:border-color.2s,box-shadow.2s;
-    font-family:inherit;
-  }
-  .search-input:focus{
-    outline:none;border-color:var(--blue);
-    box-shadow:0003px rgba(13,110,253,.15);
-  }
-  .filter-select{
-    padding:.75rem1.25rem;border:2px solid var(--line);
-    border-radius:.5rem;font-size:1rem;background:white;
-    cursor:pointer;font-family:inherit;transition:border-color.2s;
-  }
-  .filter-select:hover{border-color:var(--blue)}
-  .filter-select:focus{outline:none;border-color:var(--blue);box-shadow:0003px rgba(13,110,253,.15)}
-  
-  .group-grid{
-    display:grid;
-    grid-template-columns:repeat(auto-fill,minmax(280px,1fr));
-    gap:1.25rem;
-  }
-  .group-card{
-    background:var(--panel);border-radius:.75rem;
-    box-shadow:var(--shadow);padding:1.5rem;
-    border:1px solid var(--line);border-left:4px solid var(--acc-y2026);
-  }
-  .group-card h3{
-    margin:001rem;font-size:1.1rem;
-    color:var(--acc-y2026);font-weight:700;
-  }
-  .group-card ul{list-style:none;padding:0}
-  .group-card li{
-    padding:.65rem0;
-    border-bottom:1px dashed var(--line);
-    font-size:.95rem;display:flex;
-    align-items:center;gap:.5rem;
-  }
-  .group-card li:last-child{border-bottom:none}
-  .group-card .code{color:var(--muted);font-size:.8rem;margin-left:auto}
-  
-  .city-grid{
-    display:grid;
-    grid-template-columns:repeat(auto-fill,minmax(300px,1fr));
-    gap:1.25rem;
-  }
-  .city-card{
-    background:var(--panel);border-radius:.75rem;
-    box-shadow:var(--shadow);padding:1.5rem;
-    border:1px solid var(--line);
-    transition:transform.2s;
-  }
-  .city-card:hover{transform:translateY(-2px)}
-  .city-card .venue{font-weight:700;font-size:1.05rem;margin-bottom:.5rem}
-  .city-card .meta{color:var(--muted);font-size:.9rem;margin-bottom:.25rem}
-  .city-card .match-count{
-    color:var(--blue);font-weight:700;
-    font-size:1.1rem;margin-top:.75rem;
-    display:flex;align-items:center;gap:.5rem;
-  }
-  .city-card .match-count::before{
-    content:'⚽';font-size:1rem;
-  }
-  
-  @media(max-width:768px){
-    .dashboard-header{padding:2rem1rem}
-    .dashboard-header h1{font-size:2rem}
-    .dashboard-header p{font-size:1rem}
-    .nav-container{padding:01rem}
-    .nav-tab{padding:.875rem1rem;font-size:.85rem}
-    .dashboard-main{padding:1.25rem}
-    .stats-grid{grid-template-columns:repeat(2,1fr);gap:1rem}
-    .stat-card{padding:1.25rem}
-    .stat-value{font-size:1.75rem}
-    .search-input{width:100%}
-    .controls{gap:.75rem}
-    .group-grid,.city-grid{grid-template-columns:1fr}
-  }
-  
-  @media(max-width:480px){
-    .stats-grid{grid-template-columns:1fr}
-    .nav-tab{padding:.75rem.875rem;font-size:.8rem}
-  }
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f5f5f5;color:#333;line-height:1.6}
+.header{background:linear-gradient(135deg,#1e3c72,#2a5298);color:white;padding:2rem;text-align:center}
+.header h1{font-size:2rem;margin-bottom:.5rem}
+.header p{opacity:.9}
+nav{background:white;box-shadow:02px4px rgba(0,0,0,.1);position:sticky;top:0;z-index:100}
+.nav-inner{max-width:1200px;margin:0auto;display:flex;overflow-x:auto}
+.nav-btn{padding:1rem1.5rem;border:none;background:none;font-weight:600;color:#666;cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap}
+.nav-btn:hover{color:#333;background:#f8f9fa}
+.nav-btn.active{color:#0066cc;border-bottom-color:#0066cc}
+.container{max-width:1200px;margin:0auto;padding:1.5rem}
+.panel{display:none}
+.panel.active{display:block}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;margin-bottom:1.5rem}
+.stat{background:white;border-radius:8px;padding:1.25rem;text-align:center;box-shadow:01px3px rgba(0,0,0,.1)}
+.stat-val{font-size:1.75rem;font-weight:700;color:#0066cc}
+.stat-lbl{color:#666;font-size:.85rem;margin-top:.25rem}
+.card{background:white;border-radius:8px;padding:1.5rem;margin-bottom:1.5rem;box-shadow:01px3px rgba(0,0,0,.1)}
+.card h2{font-size:1.2rem;margin-bottom:1rem;padding-bottom:.5rem;border-bottom:2px solid #0066cc}
+.card h2.hist{border-color:#0066cc}
+.card h2.y18{border-color:#f0ad4e}
+.card h2.y22{border-color:#5bc0de}
+.card h2.y26{border-color:#5cb85c}
+.chart{display:flex;align-items:flex-end;gap:4px;height:180px;padding:1rem0;overflow-x:auto}
+.bar{flex:1;min-width:25px;background:#0066cc;border-radius:3px3px00;position:relative;transition:opacity.2s}
+.bar:hover{opacity:.8}
+.bar .val{position:absolute;top:-1.5rem;left:50%;transform:translateX(-50%);font-size:.7rem;font-weight:600;white-space:nowrap}
+.bar .lbl{position:absolute;bottom:-1.5rem;left:50%;transform:translateX(-50%);font-size:.65rem;color:#666;white-space:nowrap}
+table{width:100%;border-collapse:collapse}
+th,td{padding:.75rem;text-align:left;border-bottom:1px solid #eee}
+th{background:#f8f9fa;font-weight:600;font-size:.8rem;color:#666;text-transform:uppercase}
+tr:hover{background:#f8f9fa}
+.controls{display:flex;gap:.75rem;flex-wrap:wrap;margin-bottom:1rem}
+input,select{padding:.5rem.75rem;border:1px solid #ddd;border-radius:4px;font-size:.9rem}
+input:focus,select:focus{outline:none;border-color:#0066cc}
+.badge{display:inline-block;padding:.2rem.5rem;border-radius:12px;font-size:.75rem;font-weight:600;background:#e3f2fd;color:#0066cc}
+.groups{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:1rem}
+.group{background:white;border-radius:8px;padding:1rem;border-left:4px solid #5cb85c}
+.group h3{color:#5cb85c;margin-bottom:.5rem;font-size:1rem}
+.group ul{list-style:none}
+.group li{padding:.4rem0;border-bottom:1px dashed #eee;font-size:.9rem}
+.group li:last-child{border-bottom:none}
+.cities{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1rem}
+.city{background:white;border-radius:8px;padding:1rem}
+.city .name{font-weight:600;margin-bottom:.25rem}
+.city .info{color:#666;font-size:.85rem}
+.city .matches{color:#0066cc;font-weight:600;margin-top:.5rem}
+@media(max-width:768px){
+  .header h1{font-size:1.5rem}
+  .nav-btn{padding:.75rem1rem;font-size:.85rem}
+  .stats{grid-template-columns:repeat(2,1fr)}
+  input{width:100%}
+}
 </style>
 </head>
 <body>
 
-<header class="dashboard-header">
-  <h1>FIFA World Cup Report Dashboard</h1>
-  <p>Comprehensive analysis of every tournament from Uruguay1930 to USA/Canada/Mexico2026</p>
-</header>
+<div class="header">
+  <h1>FIFA World Cup Dashboard</h1>
+  <p>Analysis from1930 to2026</p>
+</div>
 
-<nav class="dashboard-nav">
-  <div class="nav-container">
-    <div class="nav-tabs" id="nav-tabs"></div>
-  </div>
+<nav>
+  <div class="nav-inner" id="nav"></div>
 </nav>
 
-<main class="dashboard-main">
-  <div class="panel active" id="panel-overview">
-    <div class="stats-grid" id="stats-overview"></div>
+<div class="container">
+  <div class="panel active" id="p-overview">
+    <div class="stats" id="s-overview"></div>
     <div class="card">
-      <div class="card-header">Tournament Growth</div>
-      <div class="chart-container">
-        <div class="chart-title">Matches per Tournament</div>
-        <div class="bar-chart" id="chart-matches"></div>
-      </div>
-      <div class="chart-container">
-        <div class="chart-title">Goals per Game Trend</div>
-        <div class="bar-chart" id="chart-goals"></div>
-      </div>
+      <h2>Tournament Growth</h2>
+      <div class="chart" id="c-matches"></div>
+    </div>
+    <div class="card">
+      <h2>Goals per Game</h2>
+      <div class="chart" id="c-goals"></div>
     </div>
   </div>
 
-  <div class="panel" id="panel-history">
-    <div class="stats-grid" id="stats-history"></div>
+  <div class="panel" id="p-history">
+    <div class="stats" id="s-history"></div>
     <div class="card">
-      <div class="card-header history">All-Time Top Scorers (1930-2014)</div>
-      <div class="chart-container">
-        <div class="bar-chart" id="chart-nations"></div>
-      </div>
+      <h2 class="hist">Top Scorers</h2>
+      <div class="chart" id="c-nations"></div>
     </div>
     <div class="card">
-      <div class="card-header history">Finals History</div>
-      <div class="table-container">
-        <table id="table-finals">
-          <thead><tr><th>Year</th><th>Champion</th><th>Score</th><th>Runner-up</th><th>Attendance</th></tr></thead>
-          <tbody></tbody>
-        </table>
-      </div>
+      <h2 class="hist">Finals</h2>
+      <table id="t-finals"><thead><tr><th>Year</th><th>Champion</th><th>Score</th><th>Runner-up</th></tr></thead><tbody></tbody></table>
     </div>
     <div class="card">
-      <div class="card-header history">Match Archive</div>
+      <h2 class="hist">Match Archive</h2>
       <div class="controls">
-        <input type="text" class="search-input" id="match-search" placeholder="Search team, city, stadium...">
-        <select class="filter-select" id="match-year"></select>
-        <select class="filter-select" id="match-stage"></select>
+        <input id="search" placeholder="Search...">
+        <select id="sel-year"></select>
+        <select id="sel-stage"></select>
       </div>
-      <div class="table-container">
-        <table id="table-matches">
-          <thead><tr><th>Year</th><th>Stage</th><th>Home</th><th>Score</th><th>Away</th><th>Attendance</th><th>City</th></tr></thead>
-          <tbody></tbody>
-        </table>
-      </div>
+      <table id="t-matches"><thead><tr><th>Year</th><th>Stage</th><th>Home</th><th>Score</th><th>Away</th><th>City</th></tr></thead><tbody></tbody></table>
     </div>
   </div>
 
-  <div class="panel" id="panel-y2018">
-    <div class="stats-grid" id="stats-2018"></div>
+  <div class="panel" id="p-2018">
+    <div class="stats" id="s-2018"></div>
     <div class="card">
-      <div class="card-header y2018">Tournament Progression</div>
-      <div class="chart-container">
-        <div class="chart-title">Teams Reached Each Stage</div>
-        <div class="bar-chart" id="chart-2018-progression"></div>
-      </div>
+      <h2 class="y18">Tournament Progression</h2>
+      <div class="chart" id="c-prog"></div>
     </div>
     <div class="card">
-      <div class="card-header y2018">Top Scorers</div>
-      <div class="chart-container">
-        <div class="bar-chart" id="chart-2018-scorers"></div>
-      </div>
+      <h2 class="y18">Top Scorers</h2>
+      <div class="chart" id="c-scorers"></div>
     </div>
     <div class="card">
-      <div class="card-header y2018">Team Performance</div>
-      <div class="table-container">
-        <table id="table-2018-teams">
-          <thead><tr><th>Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GF</th><th>GA</th><th>GD</th><th>Avg Poss%</th></tr></thead>
-          <tbody></tbody>
-        </table>
-      </div>
+      <h2 class="y18">Team Performance</h2>
+      <table id="t-teams18"><thead><tr><th>Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GF</th><th>GA</th><th>GD</th><th>Poss%</th></tr></thead><tbody></tbody></table>
     </div>
     <div class="card">
-      <div class="card-header y2018">Country Rankings</div>
-      <div class="table-container">
-        <table id="table-2018-countries">
-          <thead><tr><th>Country</th><th>FIFA Rank</th><th>Group</th><th>Tournament Rank</th><th>Reached</th></tr></thead>
-          <tbody></tbody>
-        </table>
-      </div>
+      <h2 class="y18">Rankings</h2>
+      <table id="t-rank"><thead><tr><th>Country</th><th>FIFA</th><th>Group</th><th>Rank</th><th>Reached</th></tr></thead><tbody></tbody></table>
     </div>
   </div>
 
-  <div class="panel" id="panel-y2022">
-    <div class="stats-grid" id="stats-2022"></div>
+  <div class="panel" id="p-2022">
+    <div class="stats" id="s-2022"></div>
     <div class="card">
-      <div class="card-header y2022">Team Statistics</div>
-      <div class="table-container">
-        <table id="table-2022-teams">
-          <thead><tr><th>Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GF</th><th>GA</th><th>Poss%</th><th>Shots</th><th>On Target</th><th>Passes</th></tr></thead>
-          <tbody></tbody>
-        </table>
-      </div>
+      <h2 class="y22">Team Stats</h2>
+      <table id="t-teams22"><thead><tr><th>Team</th><th>P</th><th>W</th><th>D</th><th>L</th><th>GF</th><th>GA</th><th>Poss%</th><th>Shots</th><th>On Target</th></tr></thead><tbody></tbody></table>
     </div>
     <div class="card">
-      <div class="card-header y2022">Match Results</div>
-      <div class="table-container">
-        <table id="table-2022-matches">
-          <thead><tr><th>Stage</th><th>Home</th><th>Score</th><th>Away</th><th>Poss%</th><th>Shots</th></tr></thead>
-          <tbody></tbody>
-        </table>
-      </div>
+      <h2 class="y22">Matches</h2>
+      <table id="t-matches22"><thead><tr><th>Stage</th><th>Home</th><th>Score</th><th>Away</th><th>Poss%</th></tr></thead><tbody></tbody></table>
     </div>
   </div>
 
-  <div class="panel" id="panel-y2026">
-    <div class="stats-grid" id="stats-2026"></div>
+  <div class="panel" id="p-2026">
+    <div class="stats" id="s-2026"></div>
     <div class="card">
-      <div class="card-header y2026">Groups</div>
-      <div class="group-grid" id="group-cards"></div>
+      <h2 class="y26">Groups</h2>
+      <div class="groups" id="groups"></div>
     </div>
     <div class="card">
-      <div class="card-header y2026">Schedule</div>
-      <div class="controls" id="stage-filter"></div>
-      <div class="table-container">
-        <table id="table-2026-schedule">
-          <thead><tr><th>#</th><th>Stage</th><th>Date</th><th>Home</th><th>vs</th><th>Away</th><th>Venue</th><th>City</th></tr></thead>
-          <tbody></tbody>
-        </table>
-      </div>
+      <h2 class="y26">Schedule</h2>
+      <div class="controls" id="stages"></div>
+      <table id="t-sched"><thead><tr><th>#</th><th>Stage</th><th>Date</th><th>Home</th><th>vs</th><th>Away</th><th>Venue</th></tr></thead><tbody></tbody></table>
     </div>
     <div class="card">
-      <div class="card-header y2026">Host Cities</div>
-      <div class="city-grid" id="city-cards"></div>
+      <h2 class="y26">Host Cities</h2>
+      <div class="cities" id="cities"></div>
     </div>
   </div>
-</main>
+</div>
 
 <script src="data.js"></script>
 <script>
-"use strict";
-const D = window.WC_DATA;
-const $ = (id) => document.getElementById(id);
+const D=window.WC_DATA,$=id=>document.getElementById(id);
+const fmt=n=>n==null?"—":Number(n).toLocaleString();
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 
-const TABS = [
-  ["overview", "Overview"],
-  ["history", "History1930-2014"],
-  ["y2018", "Russia2018"],
-  ["y2022", "Qatar2022"],
-  ["y2026", "2026 USA·CAN·MEX"],
-];
-
-$("nav-tabs").innerHTML = TABS.map(([id, label]) =>
-  `<button class="nav-tab${id === 'overview' ? ' active' : ''}" data-tab="${id}">${label}</button>`
-).join("");
-
-document.querySelectorAll(".nav-tab").forEach(tab => {
-  tab.addEventListener("click", () => {
-    document.querySelectorAll(".nav-tab").forEach(t => t.classList.remove("active"));
-    document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
-    tab.classList.add("active");
-    $(`panel-${tab.dataset.tab}`).classList.add("active");
-    window.scrollTo({top:0,behavior:'smooth'});
-  });
+// Navigation
+const tabs=[["overview","Overview"],["history","1930-2014"],["2018","Russia2018"],["2022","Qatar2022"],["2026","2026"]];
+$("nav").innerHTML=tabs.map(([id,lbl])=>`<button class="nav-btn${id==="overview"?" active":""}" data-p="${id}">${lbl}</button>`).join("");
+document.querySelectorAll(".nav-btn").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll(".nav-btn").forEach(x=>x.classList.remove("active"));
+  document.querySelectorAll(".panel").forEach(x=>x.classList.remove("active"));
+  b.classList.add("active");
+  $(`p-${b.dataset.p}`).classList.add("active");
+  window.scrollTo(0,0);
 });
 
-const fmt = (n) => n == null ? "—" : Number(n).toLocaleString("en-US");
-const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-
-function barChart(el, items, {color = 'var(--blue)'} = {}) {
-  const max = Math.max(...items.map(d => d.value), 1);
-  el.innerHTML = items.map(d => 
-    `<div class="bar" style="height:${(d.value/max)*100}%;background:${color}" title="${esc(d.label)}: ${fmt(d.value)}">
-      <div class="bar-value">${fmt(d.value)}</div>
-      <div class="bar-label">${esc(d.label)}</div>
-    </div>`
-  ).join("");
+// Charts
+function chart(el,items,color="#0066cc"){
+  const max=Math.max(...items.map(d=>d.v),1);
+  el.innerHTML=items.map(d=>`<div class="bar" style="height:${(d.v/max)*100}%;background:${color}" title="${esc(d.l)}: ${fmt(d.v)}"><div class="val">${fmt(d.v)}</div><div class="lbl">${esc(d.l)}</div></div>`).join("");
 }
 
-const O = D.overview;
-$("stats-overview").innerHTML = [
-  [fmt(O.tournaments_1930_2014), "Tournaments"],
-  [fmt(O.matches_1930_2014 + O.matches_2022 + O.matches_2026), "Total Matches"],
-  [fmt(O.goals_1930_2014), "Goals Scored"],
-  [fmt(O.avg_gpg_1930_2014), "Avg Goals/Game"],
-  [fmt(O.teams_2026), "Teams in2026"],
-  [fmt(O.matches_2026), "Matches in2026"],
-].map(([v, l]) => `<div class="stat-card"><div class="stat-value">${v}</div><div class="stat-label">${l}</div></div>`).join("");
+// Overview
+const O=D.overview;
+$("s-overview").innerHTML=[
+  [fmt(O.tournaments_1930_2014),"Tournaments"],
+  [fmt(O.matches_1930_2014+O.matches_2022+O.matches_2026),"Total Matches"],
+  [fmt(O.goals_1930_2014),"Goals"],
+  [fmt(O.avg_gpg_1930_2014),"Avg Goals/Game"],
+  [fmt(O.teams_2026),"Teams2026"],
+  [fmt(O.matches_2026),"Matches2026"],
+].map(([v,l])=>`<div class="stat"><div class="stat-val">${v}</div><div class="stat-lbl">${l}</div></div>`).join("");
+chart($("c-matches"),D.yearly.map(y=>({l:y.year,v:y.matches})));
+chart($("c-goals"),D.yearly.map(y=>({l:y.year,v:y.gpg})),"#5cb85c");
 
-barChart($("chart-matches"), D.yearly.map(y => ({label: y.year, value: y.matches})));
-barChart($("chart-goals"), D.yearly.map(y => ({label: y.year, value: y.gpg})), {color: 'var(--green)'});
-barChart($("chart-nations"), D.top_nations.map(t => ({label: t.team, value: t.goals})), {color: 'var(--gold)'});
-
-$("table-finals").querySelector("tbody").innerHTML = D.finals.map(f => 
-  `<tr><td>${f.year}</td><td><strong>${esc(f.champion)}</strong></td><td>${f.home_goals}-${f.away_goals}</td><td>${esc(f.away)}</td><td>${fmt(f.att)}</td></tr>`
-).join("");
-
-const years = [...new Set(D.matches_hist.map(m => m.year))].sort();
-const stages = [...new Set(D.matches_hist.map(m => m.stage))].sort();
-$("match-year").innerHTML = `<option value="">All Years</option>` + years.map(y => `<option>${y}</option>`).join("");
-$("match-stage").innerHTML = `<option value="">All Stages</option>` + stages.map(s => `<option>${esc(s)}</option>`).join("");
-
-function renderMatches() {
-  const q = $("match-search").value.toLowerCase();
-  const y = $("match-year").value;
-  const s = $("match-stage").value;
-  const filtered = D.matches_hist.filter(m => 
-    (!y || m.year === +y) && (!s || m.stage === s) &&
-    (!q || [m.home, m.away, m.city, m.stadium].some(v => String(v).toLowerCase().includes(q)))
-  ).slice(0, 50);
-  
-  $("table-matches").querySelector("tbody").innerHTML = filtered.map(m => 
-    `<tr><td>${m.year}</td><td>${esc(m.stage)}</td><td>${esc(m.home)}</td><td><strong>${m.hg}-${m.ag}</strong></td><td>${esc(m.away)}</td><td>${fmt(m.att)}</td><td>${esc(m.city)}</td></tr>`
-  ).join("");
+// History
+chart($("c-nations"),D.top_nations.map(t=>({l:t.team,v:t.goals})),"#f0ad4e");
+$("t-finals").querySelector("tbody").innerHTML=D.finals.map(f=>`<tr><td>${f.year}</td><td><b>${esc(f.champion)}</b></td><td>${f.home_goals}-${f.away_goals}</td><td>${esc(f.away)}</td></tr>`).join("");
+const years=[...new Set(D.matches_hist.map(m=>m.year))].sort();
+const stages=[...new Set(D.matches_hist.map(m=>m.stage))].sort();
+$("sel-year").innerHTML=`<option value="">All Years</option>`+years.map(y=>`<option>${y}</option>`).join("");
+$("sel-stage").innerHTML=`<option value="">All Stages</option>`+stages.map(s=>`<option>${esc(s)}</option>`).join("");
+function renderHist(){
+  const q=$("search").value.toLowerCase(),y=$("sel-year").value,s=$("sel-stage").value;
+  const f=D.matches_hist.filter(m=>(!y||m.year===+y)&&(!s||m.stage===s)&&(!q||[m.home,m.away,m.city].some(v=>String(v).toLowerCase().includes(q)))).slice(0,50);
+  $("t-matches").querySelector("tbody").innerHTML=f.map(m=>`<tr><td>${m.year}</td><td>${esc(m.stage)}</td><td>${esc(m.home)}</td><td><b>${m.hg}-${m.ag}</b></td><td>${esc(m.away)}</td><td>${esc(m.city)}</td></tr>`).join("");
 }
-$("match-search").addEventListener("input", renderMatches);
-$("match-year").addEventListener("change", renderMatches);
-$("match-stage").addEventListener("change", renderMatches);
-renderMatches();
+$("search").oninput=$("sel-year").onchange=$("sel-stage").onchange=renderHist;
+renderHist();
 
-if (D.matches_2018) {
-  $("stats-2018").innerHTML = [
-    [fmt(D.matches_2018.length), "Matches"],
-    [fmt(D.goals_2018.length), "Goals"],
-    [fmt(D.countries_2018.length), "Teams"],
-    [fmt(D.matches_2018.reduce((s, m) => s + m.total_goals, 0)), "Total Goals"],
-  ].map(([v, l]) => `<div class="stat-card"><div class="stat-value">${v}</div><div class="stat-label">${l}</div></div>`).join("");
-  
-  const stages = ['Last16', 'QFinals', 'SFinals', 'Finals', 'Winner'];
-  const progression = stages.map(s => ({label: s, value: D.countries_2018.filter(c => c[s.toLowerCase()] === 'Y').length}));
-  barChart($("chart-2018-progression"), progression, {color: 'var(--acc-y2018)'});
-  
-  const scorers = {};
-  D.goals_2018.forEach(g => { scorers[g.player_scored] = (scorers[g.player_scored] || 0) + 1; });
-  const topScorers = Object.entries(scorers).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([name, goals]) => ({label: name, value: goals}));
-  barChart($("chart-2018-scorers"), topScorers, {color: 'var(--gold)'});
-  
-  $("table-2018-teams").querySelector("tbody").innerHTML = D.teams_2018.map(t => 
-    `<tr><td>${esc(t.team)}</td><td>${t.matches}</td><td>${t.w}</td><td>${t.d}</td><td>${t.l}</td><td>${t.gf}</td><td>${t.ga}</td><td>${t.gd}</td><td>${t.avg_possession}%</td></tr>`
-  ).join("");
-  
-  $("table-2018-countries").querySelector("tbody").innerHTML = D.countries_2018
-    .sort((a, b) => a.world_ranking - b.world_ranking)
-    .map(c => {
-      let reached = 'Group';
-      if (c.winner === 'Y') reached = 'Winner';
-      else if (c.finals === 'Y') reached = 'Final';
-      else if (c.sfinals === 'Y') reached = 'Semi-final';
-      else if (c.qfinals === 'Y') reached = 'Quarter-final';
-      else if (c.last16 === 'Y') reached = 'Round of16';
-      return `<tr><td>${esc(c.country)}</td><td>${c.world_ranking}</td><td>${esc(c.group)}</td><td>${c.tournament_ranking}</td><td><span class="badge badge-stage">${reached}</span></td></tr>`;
-    }).join("");
+//2018
+if(D.matches_2018){
+  $("s-2018").innerHTML=[
+    [fmt(D.matches_2018.length),"Matches"],
+    [fmt(D.goals_2018.length),"Goals"],
+    [fmt(D.countries_2018.length),"Teams"],
+    [fmt(D.matches_2018.reduce((s,m)=>s+m.total_goals,0)),"Total Goals"],
+  ].map(([v,l])=>`<div class="stat"><div class="stat-val">${v}</div><div class="stat-lbl">${l}</div></div>`).join("");
+  chart($("c-prog"),["Last16","QFinals","SFinals","Finals","Winner"].map(s=>({l:s,v:D.countries_2018.filter(c=>c[s.toLowerCase()==="Y").length})),"#f0ad4e");
+  const sc={};D.goals_2018.forEach(g=>{sc[g.player_scored]=(sc[g.player_scored]||0)+1;});
+  chart($("c-scorers"),Object.entries(sc).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([n,g])=>({l:n,v:g})),"#f0ad4e");
+  $("t-teams18").querySelector("tbody").innerHTML=D.teams_2018.map(t=>`<tr><td>${esc(t.team)}</td><td>${t.matches}</td><td>${t.w}</td><td>${t.d}</td><td>${t.l}</td><td>${t.gf}</td><td>${t.ga}</td><td>${t.gd}</td><td>${t.avg_possession}%</td></tr>`).join("");
+  $("t-rank").querySelector("tbody").innerHTML=D.countries_2018.sort((a,b)=>a.world_ranking-b.world_ranking).map(c=>{
+    let r="Group";if(c.winner==="Y")r="Winner";else if(c.finals==="Y")r="Final";else if(c.sfinals==="Y")r="Semi";else if(c.qfinals==="Y")r="QF";else if(c.last16==="Y")r="R16";
+    return`<tr><td>${esc(c.country)}</td><td>${c.world_ranking}</td><td>${esc(c.group)}</td><td>${c.tournament_ranking}</td><td><span class="badge">${r}</span></td></tr>`;
+  }).join("");
 }
 
-if (D.teams_2022) {
-  $("stats-2022").innerHTML = [
-    [fmt(D.matches_2022.length), "Matches"],
-    [fmt(D.teams_2022.length), "Teams"],
-    [fmt(D.matches_2022.reduce((s, m) => s + m.g1 + m.g2, 0)), "Goals"],
-  ].map(([v, l]) => `<div class="stat-card"><div class="stat-value">${v}</div><div class="stat-label">${l}</div></div>`).join("");
-  
-  $("table-2022-teams").querySelector("tbody").innerHTML = D.teams_2022.map(t => 
-    `<tr><td>${esc(t.team)}</td><td>${t.p}</td><td>${t.w}</td><td>${t.d}</td><td>${t.l}</td><td>${t.gf}</td><td>${t.ga}</td><td>${t.pos}%</td><td>${t.att}</td><td>${t.ont}</td><td>${fmt(t.passc)}</td></tr>`
-  ).join("");
-  
-  $("table-2022-matches").querySelector("tbody").innerHTML = D.matches_2022.map(m => 
-    `<tr><td>${esc(m.cat)}</td><td>${esc(m.t1)}</td><td><strong>${m.g1}-${m.g2}</strong></td><td>${esc(m.t2)}</td><td>${m.pos1}%/${m.pos2}%</td><td>${m.att1}/${m.att2}</td></tr>`
-  ).join("");
+//2022
+if(D.teams_2022){
+  $("s-2022").innerHTML=[
+    [fmt(D.matches_2022.length),"Matches"],
+    [fmt(D.teams_2022.length),"Teams"],
+    [fmt(D.matches_2022.reduce((s,m)=>s+m.g1+m.g2,0)),"Goals"],
+  ].map(([v,l])=>`<div class="stat"><div class="stat-val">${v}</div><div class="stat-lbl">${l}</div></div>`).join("");
+  $("t-teams22").querySelector("tbody").innerHTML=D.teams_2022.map(t=>`<tr><td>${esc(t.team)}</td><td>${t.p}</td><td>${t.w}</td><td>${t.d}</td><td>${t.l}</td><td>${t.gf}</td><td>${t.ga}</td><td>${t.pos}%</td><td>${t.att}</td><td>${t.ont}</td></tr>`).join("");
+  $("t-matches22").querySelector("tbody").innerHTML=D.matches_2022.map(m=>`<tr><td>${esc(m.cat)}</td><td>${esc(m.t1)}</td><td><b>${m.g1}-${m.g2}</b></td><td>${esc(m.t2)}</td><td>${m.pos1}%/${m.pos2}%</td></tr>`).join("");
 }
 
-if (D.groups_2026) {
-  $("stats-2026").innerHTML = [
-    [fmt(D.teams_2026), "Teams"],
-    [fmt(D.matches_2026), "Matches"],
-    [fmt(D.cities_2026), "Host Cities"],
-  ].map(([v, l]) => `<div class="stat-card"><div class="stat-value">${v}</div><div class="stat-label">${l}</div></div>`).join("");
-  
-  $("group-cards").innerHTML = D.groups_2026.map(g => 
-    `<div class="group-card"><h3>Group ${g.letter}</h3><ul>${g.teams.map(t => 
-      `<li>${esc(t.name)} <span class="code">${esc(t.code)}</span>${t.placeholder ? ' <span class="badge badge-draw">TBD</span>' : ''}</li>`
-    ).join('')}</ul></div>`
-  ).join("");
-  
-  const stageList = [...new Set(D.schedule_2026.map(m => m.stage))];
-  $("stage-filter").innerHTML = `<button class="filter-select" data-stage="">All Stages</button>` + 
-    stageList.map(s => `<button class="filter-select" data-stage="${esc(s)}">${esc(s)}</button>`).join("");
-  
-  let curStage = "";
-  $("stage-filter").addEventListener("click", e => {
-    const btn = e.target.closest("button");
-    if (!btn) return;
-    curStage = btn.dataset.stage;
-    render2026();
-  });
-  
-  function render2026() {
-    const rows = D.schedule_2026.filter(m => !curStage || m.stage === curStage);
-    $("table-2026-schedule").querySelector("tbody").innerHTML = rows.map(m => 
-      `<tr><td>${m.num}</td><td><span class="badge badge-stage">${esc(m.stage)}</span></td><td>${esc(m.iso)}</td><td>${esc(m.home || m.label.split(' vs ')[0])}</td><td>vs</td><td>${esc(m.away || m.label.split(' vs ')[1])}</td><td>${esc(m.venue)}</td><td>${esc(m.city)}, ${esc(m.country)}</td></tr>`
-    ).join("");
+//2026
+if(D.groups_2026){
+  $("s-2026").innerHTML=[
+    [fmt(D.teams_2026),"Teams"],
+    [fmt(D.matches_2026),"Matches"],
+    [fmt(D.cities_2026),"Cities"],
+  ].map(([v,l])=>`<div class="stat"><div class="stat-val">${v}</div><div class="stat-lbl">${l}</div></div>`).join("");
+  $("groups").innerHTML=D.groups_2026.map(g=>`<div class="group"><h3>Group ${g.letter}</h3><ul>${g.teams.map(t=>`<li>${esc(t.name)} <small style="color:#666">${esc(t.code)}</small></li>`).join("")}</ul></div>`).join("");
+  const sl=[...new Set(D.schedule_2026.map(m=>m.stage))];
+  $("stages").innerHTML=`<button data-s="">All</button>`+sl.map(s=>`<button data-s="${esc(s)}">${esc(s)}</button>`).join("");
+  let cs="";
+  $("stages").onclick=e=>{const b=e.target.closest("button");if(!b)return;cs=b.dataset.s;render26();};
+  function render26(){
+    const rows=D.schedule_2026.filter(m=>!cs||m.stage===cs);
+    $("t-sched").querySelector("tbody").innerHTML=rows.map(m=>`<tr><td>${m.num}</td><td><span class="badge">${esc(m.stage)}</span></td><td>${esc(m.iso)}</td><td>${esc(m.home||"TBD")}</td><td>vs</td><td>${esc(m.away||"TBD")}</td><td>${esc(m.venue)}</td></tr>`).join("");
   }
-  render2026();
-  
-  $("city-cards").innerHTML = D.cities_2026.map(c => 
-    `<div class="city-card"><div class="venue">${esc(c.venue)}</div><div class="meta">${esc(c.city)}, ${esc(c.country)}</div><div class="match-count">${c.matches} matches</div></div>`
-  ).join("");
+  render26();
+  $("cities").innerHTML=D.cities_2026.map(c=>`<div class="city"><div class="name">${esc(c.venue)}</div><div class="info">${esc(c.city)}, ${esc(c.country)}</div><div class="matches">${c.matches} matches</div></div>`).join("");
 }
 </script>
 </body>

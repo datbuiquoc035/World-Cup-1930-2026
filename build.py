@@ -1,13 +1,6 @@
-"""Compile the World Cup CSV dataset into a single JSON bundle for the demo site.
+"""Build the World Cup data bundle for the dashboard.
 
-Reads:
-  - WC_1930-2014.csv   (852 matches, 1930-2014)
-  - WC_2018.csv        (32-team pre-tournament preview)
-  - WC_2022.csv        (64 matches with detailed stats)
-  - WC_2026/*.csv      (48 teams, 16 host cities, 104-match schedule)
-
-Writes:
-  - site/data.js       (window.WC_DATA = {...})
+Reads CSV files from the current directory and generates docs/data.js.
 """
 
 import json
@@ -17,25 +10,15 @@ from collections import defaultdict
 ROOT = "."
 SITE = "docs"
 
-# ---------------------------------------------------------------------------
-# Team name hygiene
-# ---------------------------------------------------------------------------
-import re as _re
-
 def clean_team(name):
-    """Strip scraping artifacts and normalize known misspellings."""
+    """Clean team names."""
     if pd.isna(name):
         return None
     s = str(name).strip()
-    s = _re.sub(r'^rn"?>', "", s)          # 'rn">Bosnia...' artifact
-    s = _re.sub(r'\s+', " ", s).strip()
-    ALIASES = {
-        "Columbia": "Colombia",
-        "Costarica": "Costa Rica",
-        "Porugal": "Portugal",
-        "IRAN": "Iran",
-    }
-    return ALIASES.get(s, s)
+    s = s.replace('rn">', '').replace('rn">', '')
+    s = ' '.join(s.split())
+    aliases = {'Columbia': 'Colombia', 'Costarica': 'Costa Rica', 'Porugal': 'Portugal'}
+    return aliases.get(s, s)
 
 def i0(v):
     return int(v) if pd.notna(v) else 0
@@ -44,16 +27,14 @@ def _s(v):
     s = str(v).strip() if pd.notna(v) else ""
     return s or None
 
-# ---------------------------------------------------------------------------
-# 1. Historical matches 1930-2014
-# ---------------------------------------------------------------------------
+# Load historical data (1930-2014)
+print("Loading historical data...")
 hist = pd.read_csv(f"{ROOT}/WC_1930-2014.csv")
 hist = hist.dropna(subset=["Year"])
 hist["Year"] = hist["Year"].astype(int)
 hist["Attendance"] = pd.to_numeric(hist["Attendance"], errors="coerce")
 for col in ("Home Team Name", "Away Team Name"):
     hist[col] = hist[col].map(clean_team)
-
 hist["Home Team Goals"] = pd.to_numeric(hist["Home Team Goals"], errors="coerce").fillna(0).astype(int)
 hist["Away Team Goals"] = pd.to_numeric(hist["Away Team Goals"], errors="coerce").fillna(0).astype(int)
 hist["total_goals"] = hist["Home Team Goals"] + hist["Away Team Goals"]
@@ -70,7 +51,7 @@ for year, g in hist.groupby("Year"):
         "att_missing": int(g["Attendance"].isna().sum()),
     })
 
-# All-time top nations by goals (home + away)
+# Top nations by goals
 goals_by_team = defaultdict(int)
 for _, r in hist.iterrows():
     goals_by_team[r["Home Team Name"]] += r["Home Team Goals"]
@@ -80,7 +61,7 @@ top_nations = [
     for k, v in sorted(goals_by_team.items(), key=lambda x: -x[1])[:15]
 ]
 
-# Stadiums with the best average attendance (min 5 matches)
+# Top stadiums
 stadiums = hist.groupby("Stadium").agg(
     avg_att=("Attendance", "mean"),
     matches=("MatchID", "count"),
@@ -90,7 +71,7 @@ top_stadiums = [
     for idx, r in stadiums.head(10).iterrows()
 ]
 
-# Finals list
+# Finals
 finals = hist[hist["Stage"] == "Final"].copy().sort_values("Year")
 def champion_of(r):
     wc = r["Win conditions"] if pd.notna(r["Win conditions"]) and str(r["Win conditions"]).strip() else None
@@ -116,7 +97,7 @@ finals_list = [
     for _, r in finals.iterrows()
 ]
 
-# Full match list (compact) for the searchable table
+# Match list
 matches_hist = []
 for _, r in hist.iterrows():
     matches_hist.append({
@@ -141,14 +122,14 @@ for _, r in hist.iterrows():
         "win_conditions": _s(r.get("Win conditions")),
     })
 
-# ---------------------------------------------------------------------------
-# 2. 2018 World Cup data (matches, goals, countries)
-# ---------------------------------------------------------------------------
+print(f"✓ Historical: {len(matches_hist)} matches, {len(yearly)} tournaments")
+
+# Load2018 data
+print("Loading2018 data...")
 matches_18 = pd.read_csv(f"{ROOT}/World_cup_2018_matches.csv")
 goals_18 = pd.read_csv(f"{ROOT}/World_cup_2018_goals.csv")
 countries_18 = pd.read_csv(f"{ROOT}/World_cup_2018_country.csv")
 
-# Process matches
 matches_2018 = []
 for _, r in matches_18.iterrows():
     matches_2018.append({
@@ -175,7 +156,6 @@ for _, r in matches_18.iterrows():
         "total_goals": int(r["Home_goals"]) + int(r["Away_goals"]) if pd.notna(r["Home_goals"]) and pd.notna(r["Away_goals"]) else 0,
     })
 
-# Process goals
 goals_2018 = []
 for _, r in goals_18.iterrows():
     goals_2018.append({
@@ -190,7 +170,6 @@ for _, r in goals_18.iterrows():
         "penalty": str(r["Penalty"]) if pd.notna(r["Penalty"]) else "N",
     })
 
-# Process countries
 countries_2018 = []
 for _, r in countries_18.iterrows():
     countries_2018.append({
@@ -207,7 +186,7 @@ for _, r in countries_18.iterrows():
         "winner": str(r["Winner"]) if pd.notna(r["Winner"]) else "N",
     })
 
-# Aggregate team performance for2018
+# Aggregate2018 team performance
 team_perf_2018 = {}
 for m in matches_2018:
     for team, is_home in [(m["home"], True), (m["away"], False)]:
@@ -241,29 +220,14 @@ teams_2018 = [
     for team, s in sorted(team_perf_2018.items(), key=lambda x: -(x[1]["w"] * 3 + x[1]["d"]))
 ]
 
-# Keep preview_2018 for backward compatibility (now derived from countries_2018)
-preview_2018 = [
-    {
-        "team": c["country"],
-        "group": c["group"],
-        "appearances": None,
-        "titles": None,
-        "finals": None,
-        "semis": None,
-        "fifa_rank": c["world_ranking"],
-        "first_match": None,
-    }
-    for c in countries_2018
-]
+print(f"✓2018: {len(matches_2018)} matches, {len(goals_2018)} goals, {len(countries_2018)} teams")
 
-# ---------------------------------------------------------------------------
-# 3. 2022 detailed stats
-# ---------------------------------------------------------------------------
+# Load2022 data
+print("Loading2022 data...")
 d22 = pd.read_csv(f"{ROOT}/WC_2022.csv")
 numeric_cols = [c for c in d22.columns if c not in ("team1", "team2", "date", "hour", "category", "team", "Group")]
 for c in numeric_cols:
     d22[c] = pd.to_numeric(d22[c], errors="coerce")
-
 d22["team1"] = d22["team1"].map(clean_team)
 d22["team2"] = d22["team2"].map(clean_team)
 
@@ -277,7 +241,6 @@ for _, r in d22.iterrows():
         "ont1": i0(r["on target attempts team1"]), "ont2": i0(r["on target attempts team2"]),
         "pass1": i0(r["passes completed team1"]), "pass2": i0(r["passes completed team2"]),
         "cat": r["category"],
-        # extended detail for the match modal
         "date": _s(r.get("date")), "hour": _s(r.get("hour")),
         "off1": i0(r["offsides team1"]), "off2": i0(r["offsides team2"]),
         "def1": i0(r["conceded team1"]), "def2": i0(r["conceded team2"]),
@@ -300,7 +263,7 @@ for _, r in d22.iterrows():
         "dp1": i0(r["defensive pressures applied team1"]), "dp2": i0(r["defensive pressures applied team2"]),
     })
 
-# Per-team aggregates
+# Per-team aggregates for2022
 team_rows = []
 for team in sorted(set(d22["team1"].unique()) | set(d22["team2"].unique())):
     as1 = d22[d22["team1"] == team]
@@ -329,9 +292,10 @@ for team in sorted(set(d22["team1"].unique()) | set(d22["team2"].unique())):
     })
 team_rows.sort(key=lambda t: (-t["w"] * 3 - t["d"], -(t["gf"] - t["ga"])))
 
-# ---------------------------------------------------------------------------
-# 4. 2026 edition
-# ---------------------------------------------------------------------------
+print(f"✓2022: {len(matches_2022)} matches, {len(team_rows)} teams")
+
+# Load2026 data
+print("Loading2026 data...")
 teams26 = pd.read_csv(f"{ROOT}/teams.csv")
 cities26 = pd.read_csv(f"{ROOT}/venues.csv")
 stages26 = pd.read_csv(f"{ROOT}/tournament_stages.csv")
@@ -346,28 +310,12 @@ for _, r in teams26.iterrows():
     })
 groups_2026 = [{"letter": k, "teams": v} for k, v in sorted(teams_by_group.items())]
 
-city_map = {int(r.venue_id): {"city": r.city, "country": r.country, "venue": r.stadium_name,
-                        "region": ""} for _, r in cities26.iterrows()}
+city_map = {int(r.venue_id): {"city": r.city, "country": r.country, "venue": r.stadium_name} for _, r in cities26.iterrows()}
 stage_map = {int(r.stage_id): {"name": r.stage_name, "order": int(r.stage_id)} for _, r in stages26.iterrows()}
-team_map = {int(r.team_id): {"name": r.team_name, "code": r.fifa_code, "placeholder": False}
-            for _, r in teams26.iterrows()}
-
-# Note: 2026 uses Eastern Daylight Time (UTC-4) for US East cities in June/July,
-# but the data already carries explicit UTC offsets, so we show venue-local time.
-tz_label = {-4: "ET", -5: "CT", -6: "MT", -7: "PT"}
-
-import re
-
-def parse_kickoff(s):
-    """2026-06-11 15:00:00-06 -> {iso, tz}"""
-    m = re.match(r"(\d{4}-\d{2}-\d{2} \d{2}:\d{2}):\d{2}([+-]\d{2})", s)
-    off = int(m.group(2))
-    return {"iso": m.group(1), "tz": tz_label.get(off, f"UTC{off:+d}")}
+team_map = {int(r.team_id): {"name": r.team_name, "code": r.fifa_code, "placeholder": False} for _, r in teams26.iterrows()}
 
 schedule_2026 = []
 for _, r in matches26.iterrows():
-    # Parse kickoff time
-    kickoff = str(r["kickoff_time_utc"]) if pd.notna(r["kickoff_time_utc"]) else ""
     home = team_map.get(int(r["home_team_id"])) if pd.notna(r["home_team_id"]) else None
     away = team_map.get(int(r["away_team_id"])) if pd.notna(r["away_team_id"]) else None
     city = city_map.get(int(r["venue_id"]), {})
@@ -386,7 +334,7 @@ for _, r in matches26.iterrows():
         "country": city.get("country"),
         "venue": city.get("venue"),
         "iso": str(r["date"]) if pd.notna(r["date"]) else None,
-        "tz": kickoff,
+        "tz": str(r["kickoff_time_utc"]) if pd.notna(r["kickoff_time_utc"]) else "",
     })
 
 stages_summary = [
@@ -402,9 +350,9 @@ cities_2026 = [
     for _, r in cities26.iterrows()
 ]
 
-# ---------------------------------------------------------------------------
-# Bundle
-# ---------------------------------------------------------------------------
+print(f"✓2026: {len(schedule_2026)} matches, {len(teams26)} teams")
+
+# Build data bundle
 overview = {
     "tournaments_1930_2014": len(yearly),
     "matches_1930_2014": len(matches_hist),
@@ -424,7 +372,6 @@ data = {
     "top_stadiums": top_stadiums,
     "finals": finals_list,
     "matches_hist": matches_hist,
-    "preview_2018": preview_2018,
     "matches_2018": matches_2018,
     "goals_2018": goals_2018,
     "countries_2018": countries_2018,
@@ -437,10 +384,15 @@ data = {
     "cities_2026": cities_2026,
 }
 
+# Write data.js
+import os
+os.makedirs(SITE, exist_ok=True)
 with open(f"{SITE}/data.js", "w") as f:
     f.write("// Auto-generated by build.py - do not edit\n")
     f.write("window.WC_DATA = " + json.dumps(data, ensure_ascii=False))
 
-print("Wrote site/data.js", len(json.dumps(data)), "bytes")
-print(f"  yearly: {len(yearly)} | matches_hist: {len(matches_hist)} | finals: {len(finals_list)}")
-print(f"  teams_2022: {len(team_rows)} | groups: {len(groups_2026)} | schedule: {len(schedule_2026)}")
+print(f"\n✓ Generated {SITE}/data.js ({len(json.dumps(data)):,} bytes)")
+print(f"  Historical: {len(yearly)} tournaments, {len(matches_hist)} matches")
+print(f"  2018: {len(matches_2018)} matches, {len(goals_2018)} goals")
+print(f"  2022: {len(matches_2022)} matches, {len(team_rows)} teams")
+print(f"  2026: {len(schedule_2026)} matches, {len(teams26)} teams")

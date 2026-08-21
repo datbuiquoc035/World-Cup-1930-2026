@@ -561,3 +561,19 @@ with open(SITE / "data.js", "w") as f:
     f.write("window.WC_DATA=" + payload + ";")
 
 print(f"\nGenerated docs/data.js ({len(payload):,} bytes)")
+
+# ---------------------------------------------------------------- cache busting
+# GitHub Pages caches assets for up to 10 minutes; pin the script tag to the
+# exact bundle content so browsers always fetch fresh data after a deploy.
+import hashlib
+import re
+
+html_path = SITE / "index.html"
+html = html_path.read_text(encoding="utf-8")
+version = hashlib.sha1(payload.encode("utf-8")).hexdigest()[:10]
+updated, n = re.subn(r'(src=")data\.js(\?v=[0-9a-f]+)?(")', rf"\g<1>data.js?v={version}\g<3>", html)
+if n != 1:
+    raise SystemExit(f'ERROR: expected exactly one data.js script tag in docs/index.html, found {n}')
+if updated != html:
+    html_path.write_text(updated, encoding="utf-8")
+print(f"Cache buster: data.js?v={version}")

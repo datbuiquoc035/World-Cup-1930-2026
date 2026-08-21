@@ -258,6 +258,7 @@ overview = {
     "matches_1930_2014": len(matches_hist),
     "goals_1930_2014": sum(y["goals"] for y in yearly),
     "avg_gpg_1930_2014": round(sum(y["gpg"] for y in yearly) / len(yearly), 2),
+    "matches_2022": int(len(d22)),
     "teams_2026": int(len(teams26)),
     "cities_2026": int(len(cities26)),
     "matches_2026": int(len(matches26)),

@@ -3,15 +3,24 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Interactive dataset explorer for every FIFA World Cup: 1930–2014 results, Russia 2018 preview, Qatar 2022 match stats and the full 48-team 2026 schedule.">
 <title>World Cup 1930–2026 · Data Explorer</title>
 <style>
   :root {
     --bg: #0b1220; --panel: #111a2e; --panel2: #16213a; --line: #243357;
     --txt: #e8edf7; --muted: #93a3c4; --green: #2ecc71; --amber: #f1c40f;
     --red: #e74c3c; --blue: #4da3ff; --gold: #d4af37;
+    --nav-h: 43px;
   }
   * { box-sizing: border-box; }
   html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after { transition: none !important; animation: none !important; }
+  }
+  a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible {
+    outline: 2px solid var(--blue); outline-offset: 2px; border-radius: 4px;
+  }
   body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
          background: radial-gradient(1200px 600px at 70% -10%, #1a2b52 0%, var(--bg) 55%) fixed;
          color: var(--txt); line-height: 1.5; }
@@ -28,7 +37,7 @@
           font-size: 13.5px; font-weight: 600; letter-spacing: .3px; }
   nav a:hover, nav a.active { color: var(--txt); }
   main { max-width: 1200px; margin: 0 auto; padding: 8px 20px 60px; }
-  section { margin-top: 44px; }
+  section { margin-top: 44px; scroll-margin-top: calc(var(--nav-h) + 16px); }
   h2 { font-size: 22px; margin: 0 0 4px; }
   h2 .tag { color: var(--blue); font-size: 13px; letter-spacing: 1px; text-transform: uppercase; }
   section > p.desc { color: var(--muted); margin: 0 0 18px; font-size: 14.5px; }
@@ -39,18 +48,21 @@
   .stat-card .lbl { color: var(--muted); font-size: 13px; margin-top: 2px; }
   .two-col { grid-template-columns: 1fr 1fr; }
   @media (max-width: 860px) { .two-col { grid-template-columns: 1fr; } }
-  .chart { display: flex; align-items: flex-end; gap: 5px; height: 220px; padding-top: 18px; }
-  .bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; height: 100%; justify-content: flex-end; min-width: 0; }
+  .chart { display: flex; align-items: flex-end; gap: 5px; height: 220px; padding-top: 18px;
+           overflow-x: auto; overflow-y: visible; scrollbar-width: thin; }
+  .bar-wrap { flex: 1 0 26px; display: flex; flex-direction: column; align-items: center; height: 100%; justify-content: flex-end; min-width: 26px; }
   .bar { width: 100%; max-width: 42px; border-radius: 4px 4px 0 0; background: linear-gradient(180deg, var(--blue), #1d4e8f);
          transition: filter .15s; }
   .bar:hover { filter: brightness(1.3); }
   .bar.gold { background: linear-gradient(180deg, var(--gold), #7a5c10); }
-  .bar-label { font-size: 10.5px; color: var(--muted); margin-top: 6px; white-space: nowrap; transform: rotate(-45deg) translateY(-8px); transform-origin: top left; }
+  .bar-label { font-size: 10.5px; color: var(--muted); margin-top: 6px; white-space: nowrap;
+               max-width: 72px; overflow: hidden; text-overflow: ellipsis;
+               transform: rotate(-45deg) translateY(-8px); transform-origin: top left; }
   .bar-value { font-size: 10.5px; color: var(--txt); margin-bottom: 4px; opacity: .85; }
   table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
   th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap; }
   th { color: var(--muted); font-weight: 600; font-size: 12px; letter-spacing: .4px; text-transform: uppercase;
-       position: sticky; top: 42px; background: var(--panel); z-index: 5; cursor: pointer; user-select: none; }
+       position: sticky; top: 0; background: var(--panel); z-index: 5; cursor: pointer; user-select: none; }
   th:hover { color: var(--txt); }
   tbody tr:hover { background: var(--panel2); }
   td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
@@ -73,6 +85,7 @@
   .city-card .meta { color: var(--muted); font-size: 12.5px; margin-top: 3px; }
   .city-card .match-count { color: var(--blue); font-weight: 700; }
   .controls { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; align-items: center; }
+  .count { color: var(--muted); font-size: 12.5px; margin: -6px 0 10px; }
   input[type=text] { background: var(--panel2); color: var(--txt); border: 1px solid var(--line);
                      border-radius: 8px; padding: 8px 12px; font-size: 13.5px; width: 260px; outline: none; }
   input[type=text]:focus { border-color: var(--blue); }
@@ -86,6 +99,13 @@
   .foot code { background: var(--panel2); padding: 1px 6px; border-radius: 4px; }
   .bracket-note { color: var(--muted); font-size: 12.5px; margin-top: 8px; }
   .highlight { color: var(--gold); }
+  #to-top { position: fixed; right: 18px; bottom: 18px; z-index: 60; opacity: 0; pointer-events: none;
+            transition: opacity .2s; box-shadow: 0 4px 16px rgba(0,0,0,.45); }
+  #to-top.show { opacity: 1; pointer-events: auto; }
+  @media (max-width: 640px) {
+    input[type=text], select { font-size: 16px; }
+    #to-top { right: 12px; bottom: 12px; }
+  }
 </style>
 </head>
 <body>
@@ -140,10 +160,11 @@
     <h2><span class="tag">1930 – 2014</span> Match archive</h2>
     <p class="desc">Search every one of the 852 historical matches — filter by team, year or stage.</p>
     <div class="controls">
-      <input type="text" id="match-search" placeholder="Search team, city, stadium…">
-      <select id="match-year"></select>
-      <select id="match-stage"></select>
+      <input type="text" id="match-search" placeholder="Search team, city, stadium…" aria-label="Search matches by team, city or stadium">
+      <select id="match-year" aria-label="Filter by year"></select>
+      <select id="match-stage" aria-label="Filter by stage"></select>
     </div>
+    <p class="count" id="match-count" role="status" aria-live="polite"></p>
     <div class="table-scroll"><table id="table-matches">
       <thead><tr><th>Year</th><th>Stage</th><th>Home</th><th class="num">Score</th><th>Away</th><th class="num">Attendance</th><th>City</th><th>Stadium</th></tr></thead>
       <tbody></tbody>
@@ -202,6 +223,8 @@
   </footer>
 </main>
 
+<button class="btn" id="to-top" aria-label="Back to top">↑ Top</button>
+
 <script src="data.js"></script>
 <script>
 "use strict";
@@ -238,23 +261,44 @@ const SECTIONS = [
 ];
 $("nav").innerHTML = SECTIONS.map(([id, name]) => `<a href="#${id}">${name}</a>`).join("");
 
+/* ---------- nav height sync & scroll-spy ---------- */
+const navEl = document.querySelector("nav");
+function syncNavH() {
+  document.documentElement.style.setProperty("--nav-h", navEl.offsetHeight + "px");
+}
+syncNavH();
+window.addEventListener("resize", () => { syncNavH(); updateActiveNav(); });
+
+const navLinks = new Map([...$("nav").querySelectorAll("a")].map((a) => [a.getAttribute("href").slice(1), a]));
+function updateActiveNav() {
+  const pos = window.scrollY + navEl.offsetHeight + 80;
+  let cur = SECTIONS[0][0];
+  for (const [id] of SECTIONS) {
+    const s = $(id);
+    if (s && s.offsetTop <= pos) cur = id;
+  }
+  navLinks.forEach((a, id) => a.classList.toggle("active", id === cur));
+}
+window.addEventListener("scroll", updateActiveNav, { passive: true });
+updateActiveNav();
+
 /* ---------- overview ---------- */
 const O = D.overview;
 $("stat-cards").innerHTML = [
-  [O.tournaments_1930_2014, "Tournaments (1930–2014)"],
-  [O.matches_1930_2014, "Historical matches"],
-  [O.goals_1930_2014, "Goals scored"],
-  [O.avg_gpg_1930_2014, "Avg goals per game"],
+  [fmt(O.tournaments_1930_2014), "Tournaments (1930–2014)"],
+  [fmt(O.matches_1930_2014), "Historical matches"],
+  [fmt(O.goals_1930_2014), "Goals scored"],
+  [fmt(O.avg_gpg_1930_2014), "Avg goals per game"],
   [fmt(O.total_attendance_1930_2014), "Total attendance"],
-  [O.matches_2022, "2022 matches"],
-  [O.teams_2026, "Teams in 2026"],
-  [O.matches_2026, "Matches in 2026"],
+  [fmt(O.matches_2022), "2022 matches"],
+  [fmt(O.teams_2026), "Teams in 2026"],
+  [fmt(O.matches_2026), "Matches in 2026"],
 ].map(([n, l]) => `<div class="card stat-card"><div class="num">${n}</div><div class="lbl">${l}</div></div>`).join("");
 
 /* ---------- historical charts ---------- */
 barChart($("chart-gpg"), D.yearly.map((y) => ({ l: y.year, v: y.gpg })));
 barChart($("chart-att"), D.yearly.map((y) => ({ l: y.year, v: y.avg_att })));
-barChart($("chart-nations"), D.top_nations.map((t) => ({ l: t.team, v: t.goals })), { gold: (d) => d.team === D.top_nations[0].team });
+barChart($("chart-nations"), D.top_nations.map((t) => ({ l: t.team, v: t.goals })), { gold: (d, i) => i === 0 });
 barChart($("chart-stadiums"), D.top_stadiums.map((s) => ({ l: s.stadium, v: s.avg_att })));
 
 /* ---------- finals ---------- */
@@ -277,19 +321,26 @@ const stages = [...new Set(D.matches_hist.map((m) => m.stage))].sort();
 matchYearSel.innerHTML = `<option value="">All years</option>` + years.map((y) => `<option>${y}</option>`).join("");
 matchStageSel.innerHTML = `<option value="">All stages</option>` + stages.map((s) => `<option>${esc(s)}</option>`).join("");
 
+const MAX_ROWS = 400;
 function renderMatches() {
   const q = $("match-search").value.trim().toLowerCase();
   const y = matchYearSel.value, s = matchStageSel.value;
-  const rows = D.matches_hist.filter((m) =>
+  const filtered = D.matches_hist.filter((m) =>
     (!y || m.year === +y) &&
     (!s || m.stage === s) &&
     (!q || [m.home, m.away, m.city, m.stadium, m.stage].some((v) => String(v ?? "").toLowerCase().includes(q)))
-  ).slice(0, 400);
+  );
+  const rows = filtered.slice(0, MAX_ROWS);
   $("table-matches").querySelector("tbody").innerHTML = rows.map((m) =>
     `<tr><td>${m.year}</td><td>${esc(m.stage)}</td><td>${esc(m.home)}</td>
      <td class="num"><b>${m.hg} – ${m.ag}</b></td><td>${esc(m.away)}</td>
      <td class="num">${fmt(m.att)}</td><td>${esc(m.city)}</td><td>${esc(m.stadium)}</td></tr>`).join("")
-    || `<tr><td colspan="8" style="text-align:center;color:var(--muted)">No matches match your filters.</td></tr>`;
+    || `<tr><td colspan="8" style="text-align:center;color:var(--muted)">No matches found — try different keywords or filters.</td></tr>`;
+  $("match-count").textContent = filtered.length === 0
+    ? ""
+    : (filtered.length > rows.length
+        ? `Showing ${rows.length} of ${filtered.length} matches — refine your filters to narrow the list.`
+        : `Showing ${filtered.length} of ${D.matches_hist.length} matches.`);
 }
 $("match-search").addEventListener("input", renderMatches);
 matchYearSel.addEventListener("change", renderMatches);
@@ -314,7 +365,7 @@ $("table-2022").querySelector("tbody").innerHTML = D.teams_2022.map((t) =>
 $("table-2022m").querySelector("tbody").innerHTML = D.matches_2022.map((m) =>
   `<tr><td>${esc(m.cat)}</td><td>${esc(m.t1)}</td>
    <td class="num"><b>${m.g1} – ${m.g2}</b></td><td class="num">${m.pos1}%</td>
-   <td>${esc(m.t2)}</td><td class="num" style="color:var(--muted)">${m.g2} – ${m.g1}</td>
+   <td>${esc(m.t2)}</td><td class="num">${m.g2}</td>
    <td class="num">${m.pos2}%</td><td class="num">${m.att1} / ${m.att2}</td></tr>`).join("");
 
 /* ---------- 2026 groups ---------- */
@@ -324,16 +375,27 @@ $("group-cards").innerHTML = D.groups_2026.map((g) =>
   ).join("")}</ul></div>`).join("");
 
 /* ---------- 2026 schedule ---------- */
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+function fmtDate(iso) {
+  const [d, t] = iso.split(" ");
+  const [yy, mm, dd] = d.split("-");
+  return `${+dd} ${MONTHS[+mm - 1]} ${yy} · ${t}`;
+}
+
 const stageBtns = $("stage-filter");
 const stageList = [...new Set(D.schedule_2026.map((m) => m.stage))];
-stageBtns.innerHTML = `<button class="btn on" data-stage="">All (${D.schedule_2026.length})</button>` +
-  stageList.map((s) => `<button class="btn" data-stage="${esc(s)}">${esc(s)}</button>`).join("");
+stageBtns.innerHTML = `<button class="btn on" data-stage="" aria-pressed="true">All (${D.schedule_2026.length})</button>` +
+  stageList.map((s) => `<button class="btn" data-stage="${esc(s)}" aria-pressed="false">${esc(s)}</button>`).join("");
 let curStage = "";
 stageBtns.addEventListener("click", (e) => {
   const b = e.target.closest("button");
   if (!b) return;
   curStage = b.dataset.stage;
-  stageBtns.querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b));
+  stageBtns.querySelectorAll("button").forEach((x) => {
+    const on = x === b;
+    x.classList.toggle("on", on);
+    x.setAttribute("aria-pressed", String(on));
+  });
   render2026();
 });
 
@@ -344,7 +406,7 @@ function render2026() {
     const away = m.away ? `${esc(m.away)} <span class="pill ph" style="font-size:10px">${esc(m.away_code)}</span>${m.away_ph ? " <span class=\"pill ph\">TBD</span>" : ""}` : `<span class="pill ph">${esc(m.label.split(" vs ")[1])}</span>`;
     return `<tr><td class="num">${m.num}</td>
       <td><span class="pill stage">${esc(m.stage)}</span></td>
-      <td>${esc(m.iso)} <span class="pill ph">${esc(m.tz)}</span></td>
+      <td title="${esc(m.iso)} ${esc(m.tz)}">${esc(fmtDate(m.iso))} <span class="pill ph">${esc(m.tz)}</span></td>
       <td>${home}</td><td class="num" style="color:var(--muted)">vs</td>
       <td>${away}</td><td>${esc(m.venue)}</td><td>${esc(m.city)}, ${esc(m.country)}</td></tr>`;
   }).join("");
@@ -357,6 +419,16 @@ $("city-cards").innerHTML = D.cities_2026.map((c) =>
    <div class="meta">${esc(c.city)} · ${esc(c.country)} <span class="pill ph">${esc(c.code)}</span></div>
    <div class="meta">${esc(c.region)} cluster</div>
    <div class="meta"><span class="match-count">${c.matches}</span> matches</div></div>`).join("");
+
+/* ---------- back to top ---------- */
+const toTop = $("to-top");
+const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+window.addEventListener("scroll", () => {
+  toTop.classList.toggle("show", window.scrollY > 600);
+}, { passive: true });
+toTop.addEventListener("click", () => {
+  window.scrollTo({ top: 0, behavior: reduceMotion.matches ? "auto" : "smooth" });
+});
 </script>
 </body>
 </html>
